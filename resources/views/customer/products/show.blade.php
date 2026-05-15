@@ -182,14 +182,15 @@
                         </div>
 
                         {{-- Add to Cart Form --}}
-                        <form method="POST" action="{{ route('cart.add') }}" id="addToCartForm">
+                        <form method="POST" action="{{ route('cart.add') }}" id="addToCartForm" x-ref="cartForm">
                             @csrf
                             <input type="hidden" name="variant_id" :value="currentVariant ? currentVariant.id : ''" x-ref="variantInput">
                             <input type="hidden" name="quantity" :value="qty">
 
                             <div class="flex gap-3">
                                 @auth
-                                    <button type="submit"
+                                    <button type="button"
+                                            @click="handleAddToCart"
                                             :disabled="!currentVariant || currentVariant.stock <= 0"
                                             :class="{'opacity-50 cursor-not-allowed': !currentVariant || currentVariant.stock <= 0}"
                                             class="flex-1 bg-white border-2 border-brand-600 text-brand-600 hover:bg-brand-50
@@ -197,7 +198,7 @@
                                         <i class="fas fa-cart-plus"></i> Thêm vào giỏ
                                     </button>
                                     <button type="button"
-                                            @click="if(currentVariant && currentVariant.stock > 0) $refs.variantInput.value = currentVariant.id; document.getElementById('addToCartForm').submit();"
+                                            @click="if(currentVariant && currentVariant.stock > 0) { window.location.href = `{{ route('checkout.index') }}?variant_id=${currentVariant.id}&quantity=${qty}`; }"
                                             :disabled="!currentVariant || currentVariant.stock <= 0"
                                             :class="{'opacity-50 cursor-not-allowed shadow-none': !currentVariant || currentVariant.stock <= 0}"
                                             class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-bold
@@ -472,6 +473,40 @@
 
             updateImageGallery(variant) {
                 this.currentImage = variant.primary_image || this.productPrimaryImage;
+            },
+
+            async handleAddToCart() {
+                if (!this.currentVariant) {
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Vui lòng chọn đầy đủ tùy chọn!', type: 'error' } }));
+                    return;
+                }
+
+                try {
+                    const formData = new FormData();
+                    formData.append('_token', '{{ csrf_token() }}');
+                    formData.append('variant_id', this.currentVariant.id);
+                    formData.append('quantity', this.qty);
+
+                    const response = await fetch('{{ route("cart.add") }}', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        window.dispatchEvent(new CustomEvent('toast', { detail: { message: data.message, type: 'success' } }));
+                        window.dispatchEvent(new CustomEvent('cart-updated', { detail: { count: data.cart_count } }));
+                    } else {
+                        window.dispatchEvent(new CustomEvent('toast', { detail: { message: data.message || 'Lỗi khi thêm vào giỏ hàng', type: 'error' } }));
+                    }
+                } catch (error) {
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Đã xảy ra lỗi, vui lòng thử lại sau!', type: 'error' } }));
+                }
             }
         }));
     });

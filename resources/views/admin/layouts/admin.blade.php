@@ -89,6 +89,12 @@
                     <i class="fas fa-percent w-5"></i>
                     <span>Coupon</span>
                 </a>
+
+                <a href="{{ route('admin.reports.index') }}"
+                   class="nav-link flex items-center gap-3 px-4 py-2.5 rounded-xl {{ request()->routeIs('admin.reports.*') ? 'nav-link-active' : 'text-gray-300' }}">
+                    <i class="fas fa-chart-bar w-5"></i>
+                    <span>Báo cáo & Xuất dữ liệu</span>
+                </a>
             </div>
 
             <!-- ── KHO HÀNG ── -->

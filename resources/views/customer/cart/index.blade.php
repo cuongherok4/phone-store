@@ -41,6 +41,10 @@
                         <table class="w-full text-left border-collapse">
                             <thead>
                                 <tr class="bg-gray-50/50 border-b border-gray-100">
+                                    <th class="px-6 py-4 w-10">
+                                        <input type="checkbox" x-model="allSelected" @change="toggleAll()" 
+                                               class="w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-gray-300">
+                                    </th>
                                     <th class="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Sản phẩm</th>
                                     <th class="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Số lượng</th>
                                     <th class="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Thành tiền</th>
@@ -48,7 +52,11 @@
                             </thead>
                             <tbody class="divide-y divide-gray-100">
                                 @foreach($cart->items as $item)
-                                    <tr class="group hover:bg-gray-50/30 transition-colors" id="cart-item-{{ $item->id }}">
+                                    <tr class="group hover:bg-gray-50/30 transition-colors {{ !$item->is_selected ? 'opacity-70 bg-gray-50/10' : '' }}" id="cart-item-{{ $item->id }}">
+                                        <td class="px-6 py-6">
+                                            <input type="checkbox" :checked="items[{{ $item->id }}]?.selected" @change="toggleItem({{ $item->id }})"
+                                                   class="w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-gray-300">
+                                        </td>
                                         <td class="px-6 py-6">
                                             <div class="flex items-center gap-4">
                                                 {{-- Image --}}
@@ -125,7 +133,7 @@
                         
                         <div class="space-y-4 mb-6">
                             <div class="flex justify-between text-gray-500">
-                                <span>Tạm tính</span>
+                                <span>Tạm tính (<span x-text="selectedCount"></span> sản phẩm)</span>
                                 <span class="font-bold text-gray-900" x-text="total"></span>
                             </div>
                             <div class="flex justify-between text-gray-500">
@@ -146,10 +154,12 @@
                             </div>
                         </div>
 
-                        <a href="{{ route('checkout.index') }}"
-                           class="block w-full bg-brand-600 text-white text-center py-4 rounded-xl font-bold text-lg hover:bg-brand-700 transition shadow-lg shadow-brand-500/30 mb-4">
-                            Tiến hành đặt hàng
-                        </a>
+                        <button @click="checkout"
+                                :disabled="selectedCount === 0"
+                                :class="selectedCount === 0 ? 'bg-gray-300 cursor-not-allowed shadow-none' : 'bg-brand-600 hover:bg-brand-700 shadow-brand-500/30'"
+                                class="block w-full text-white text-center py-4 rounded-xl font-bold text-lg transition shadow-lg mb-4">
+                            Mua hàng (<span x-text="selectedCount"></span>)
+                        </button>
                         
                         <div class="flex flex-col gap-3">
                             <div class="flex items-center gap-2 text-xs text-gray-500">
@@ -175,7 +185,14 @@
     document.addEventListener('alpine:init', () => {
         Alpine.data('cartManager', () => ({
             itemCount: {{ $cart->item_count }},
+            selectedCount: {{ $cart->items->where('is_selected', true)->count() }},
             total: '{{ number_format($cart->total, 0, ',', '.') }}đ',
+            allSelected: {{ $cart->items->where('is_selected', false)->count() === 0 ? 'true' : 'false' }},
+            items: {
+                @foreach($cart->items as $item)
+                    {{ $item->id }}: { selected: {{ $item->is_selected ? 'true' : 'false' }}, subtotal: {{ $item->subtotal }} },
+                @endforeach
+            },
             
             async updateQty(itemId, delta) {
                 const qtySpan = document.getElementById(`qty-${itemId}`);
@@ -202,19 +219,79 @@
                     
                     const data = await response.json();
                     if (data.success) {
-                        qtySpan.innerText = newQty;
-                        this.itemCount = data.cart_count;
-                        this.total = data.total;
-                        // Refresh subtotal
-                        const subtotalSpan = document.getElementById(`subtotal-${itemId}`);
-                        const price = {{ $cart->items->count() > 0 ? $cart->items[0]->variant->price : 0 }}; // This logic needs to be more robust for multiple items
-                        // Better to return subtotal from server or get it from a data attribute
-                        window.location.reload(); // Simple way for now to keep everything in sync
+                        window.location.reload(); // Đơn giản nhất để đồng bộ toàn bộ UI
                     } else {
                         alert(data.message);
                     }
                 } catch (error) {
                     console.error('Update failed:', error);
+                }
+            },
+
+            async toggleItem(itemId) {
+                const isSelected = !this.items[itemId].selected;
+                try {
+                    const response = await fetch(`/gio-hang/toggle/${itemId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ is_selected: isSelected })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        this.items[itemId].selected = isSelected;
+                        this.total = data.total;
+                        this.selectedCount = data.item_count;
+                        this.checkAllSelected();
+                        // Thêm class mờ nếu không chọn
+                        const row = document.getElementById(`cart-item-${itemId}`);
+                        if (!isSelected) {
+                            row.classList.add('opacity-70', 'bg-gray-50/10');
+                        } else {
+                            row.classList.remove('opacity-70', 'bg-gray-50/10');
+                        }
+                    }
+                } catch (error) { console.error(error); }
+            },
+
+            async toggleAll() {
+                try {
+                    const response = await fetch(`/gio-hang/toggle-all`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ is_selected: this.allSelected })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        Object.keys(this.items).forEach(id => {
+                            this.items[id].selected = this.allSelected;
+                            const row = document.getElementById(`cart-item-${id}`);
+                            if (!this.allSelected) {
+                                row.classList.add('opacity-70', 'bg-gray-50/10');
+                            } else {
+                                row.classList.remove('opacity-70', 'bg-gray-50/10');
+                            }
+                        });
+                        this.total = data.total;
+                        this.selectedCount = data.item_count;
+                    }
+                } catch (error) { console.error(error); }
+            },
+
+            checkAllSelected() {
+                this.allSelected = Object.values(this.items).every(i => i.selected);
+            },
+
+            checkout() {
+                if (this.selectedCount > 0) {
+                    window.location.href = '{{ route("checkout.index") }}';
                 }
             },
 

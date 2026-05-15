@@ -22,6 +22,10 @@
         <form action="{{ route('checkout.process') }}" method="POST" id="checkout-form">
             @csrf
             <input type="hidden" name="address_id" x-model="selectedAddressId">
+            @if(request('variant_id'))
+                <input type="hidden" name="variant_id" value="{{ request('variant_id') }}">
+                <input type="hidden" name="quantity" value="{{ request('quantity', 1) }}">
+            @endif
             <div class="flex flex-col lg:flex-row gap-10">
                 
                 {{-- LEFT: Shipping Info --}}
@@ -45,20 +49,55 @@
                                 <div class="space-y-2">
                                     <label class="block text-sm font-bold text-gray-700">Họ và tên <span class="text-red-500">*</span></label>
                                     <input type="text" name="shipping_name" x-model="shipping_name" required
+                                           @input="saveData()"
                                            class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition outline-none"
                                            placeholder="Nguyễn Văn A">
                                 </div>
                                 <div class="space-y-2">
                                     <label class="block text-sm font-bold text-gray-700">Số điện thoại <span class="text-red-500">*</span></label>
                                     <input type="tel" name="shipping_phone" x-model="shipping_phone" required
+                                           @input="saveData()"
                                            class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition outline-none"
                                            placeholder="0912 xxx xxx">
                                 </div>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 col-span-full">
+                                    <div class="space-y-2">
+                                        <label class="block text-sm font-bold text-gray-700">Tỉnh / Thành phố <span class="text-red-500">*</span></label>
+                                        <select x-model="selectedProvinceCode" @change="onProvinceChange" required
+                                                class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition outline-none bg-white text-sm">
+                                            <option value="">Chọn Tỉnh / Thành phố</option>
+                                            <template x-for="p in provinces" :key="p.code">
+                                                <option :value="p.code" x-text="p.name"></option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label class="block text-sm font-bold text-gray-700">Quận / Huyện <span class="text-red-500">*</span></label>
+                                        <select x-model="selectedDistrictCode" @change="onDistrictChange" :disabled="!selectedProvinceCode" required
+                                                class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition outline-none bg-white text-sm disabled:bg-gray-50 disabled:cursor-not-allowed">
+                                            <option value="">Chọn Quận / Huyện</option>
+                                            <template x-for="d in districts" :key="d.code">
+                                                <option :value="d.code" x-text="d.name"></option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label class="block text-sm font-bold text-gray-700">Phường / Xã <span class="text-red-500">*</span></label>
+                                        <select x-model="selectedWardCode" @change="updateFullAddress" :disabled="!selectedDistrictCode" required
+                                                class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition outline-none bg-white text-sm disabled:bg-gray-50 disabled:cursor-not-allowed">
+                                            <option value="">Chọn Phường / Xã</option>
+                                            <template x-for="w in wards" :key="w.code">
+                                                <option :value="w.code" x-text="w.name"></option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                </div>
                                 <div class="col-span-full space-y-2">
-                                    <label class="block text-sm font-bold text-gray-700">Địa chỉ nhận hàng <span class="text-red-500">*</span></label>
-                                    <textarea name="shipping_address" x-model="shipping_address" required rows="3"
+                                    <label class="block text-sm font-bold text-gray-700">Địa chỉ cụ thể <span class="text-red-500">*</span></label>
+                                    <textarea name="address_detail" x-model="addressDetail" @input="updateFullAddress" required rows="2"
                                               class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition outline-none"
-                                              placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố..."></textarea>
+                                              placeholder="Số nhà, tên đường..."></textarea>
+                                    <input type="hidden" name="shipping_address" x-model="shipping_address">
                                 </div>
                                 <div class="col-span-full space-y-2">
                                     <label class="block text-sm font-bold text-gray-700">Ghi chú (tuỳ chọn)</label>
@@ -92,22 +131,10 @@
                                     </div>
                                 </label>
                                 <label class="relative flex items-center p-4 border-2 rounded-2xl cursor-pointer transition"
-                                       :class="payment_method === 'MOMO' ? 'border-brand-600 bg-brand-50/30' : 'border-gray-100 hover:border-brand-200'">
-                                    <input type="radio" name="payment_method" value="MOMO" x-model="payment_method" class="hidden">
-                                    <div class="flex flex-col items-center gap-2 w-full">
-                                        <img src="https://developers.momo.vn/v3/assets/images/logo-custom.png" class="w-8 h-8 object-contain">
-                                        <span class="text-sm font-bold text-gray-900">Ví MoMo</span>
-                                        <span class="text-[10px] text-gray-500">Thanh toán ví điện tử</span>
-                                    </div>
-                                    <div x-show="payment_method === 'MOMO'" class="absolute top-2 right-2 text-brand-600">
-                                        <i class="fas fa-check-circle"></i>
-                                    </div>
-                                </label>
-                                <label class="relative flex items-center p-4 border-2 rounded-2xl cursor-pointer transition"
                                        :class="payment_method === 'VNPAY' ? 'border-brand-600 bg-brand-50/30' : 'border-gray-100 hover:border-brand-200'">
                                     <input type="radio" name="payment_method" value="VNPAY" x-model="payment_method" class="hidden">
                                     <div class="flex flex-col items-center gap-2 w-full">
-                                        <img src="https://vnpay.vn/wp-content/uploads/2020/07/Logo-VNPAYQR-update.png" class="w-16 h-8 object-contain">
+                                        <img src="https://cdn.haitrieu.com/wp-content/uploads/2022/10/Icon-VNPAY-QR.png" class="h-8 object-contain">
                                         <span class="text-sm font-bold text-gray-900">Thanh toán VNPAY</span>
                                         <span class="text-[10px] text-gray-500">Thẻ ATM / Ngân hàng</span>
                                     </div>
@@ -127,7 +154,7 @@
                         
                         {{-- Items List --}}
                         <div class="space-y-4 mb-6 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                            @foreach($cart->items as $item)
+                            @foreach($cart->selectedItems as $item)
                                 <div class="flex gap-4">
                                     <div class="w-14 h-14 bg-gray-50 rounded-lg flex-shrink-0 border border-gray-100 p-1 flex items-center justify-center">
                                         @php
@@ -162,6 +189,9 @@
                                 <button type="button" @click="applyCoupon"
                                         class="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm font-bold hover:bg-gray-800 transition">Áp dụng</button>
                             </div>
+                            <button type="button" @click="showCouponModal = true" class="mt-2 text-xs text-brand-600 font-bold hover:underline">
+                                <i class="fas fa-ticket-alt mr-1"></i> Xem các mã ưu đãi hiện có
+                            </button>
                             <p x-show="couponMessage" x-text="couponMessage" class="mt-2 text-xs" :class="couponSuccess ? 'text-green-600' : 'text-red-500'"></p>
                         </div>
 
@@ -235,6 +265,61 @@
         </div>
         @endauth
 
+        {{-- Coupon Modal --}}
+        <div x-show="showCouponModal" 
+             class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             style="display: none;">
+            <div class="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl" @click.away="showCouponModal = false">
+                <div class="px-8 py-6 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+                    <h3 class="text-xl font-bold text-gray-900">Mã giảm giá khả dụng</h3>
+                    <button @click="showCouponModal = false" class="text-gray-400 hover:text-gray-600 transition">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="p-8 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                    <div class="space-y-4">
+                        @forelse($coupons as $coupon)
+                            @php
+                                $isEligible = $cart->total >= $coupon->min_order_value;
+                            @endphp
+                            <div class="p-4 border-2 rounded-2xl transition flex items-center justify-between {{ $isEligible ? 'border-gray-100 hover:border-brand-200 bg-white' : 'border-gray-50 bg-gray-50 opacity-60 grayscale' }}">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="px-2 py-0.5 bg-brand-100 text-brand-600 text-[10px] font-bold rounded-lg uppercase tracking-wider">{{ $coupon->code }}</span>
+                                        <span class="text-xs font-bold text-gray-900">
+                                            Giảm {{ strtoupper($coupon->discount_type) === 'PERCENT' ? ($coupon->discount_value + 0) . '%' : number_format($coupon->discount_value, 0, ',', '.') . 'đ' }}
+                                        </span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mb-1">{{ $coupon->description }}</p>
+                                    @if($coupon->min_order_value > 0)
+                                        <p class="text-[10px] text-gray-400">Đơn tối thiểu: {{ number_format($coupon->min_order_value, 0, ',', '.') }}đ</p>
+                                    @endif
+                                </div>
+                                <div>
+                                    @if($isEligible)
+                                        <button type="button" @click="selectCoupon('{{ $coupon->code }}')" 
+                                                class="px-4 py-2 bg-brand-600 text-white text-xs font-bold rounded-xl hover:bg-brand-700 transition shadow-sm shadow-brand-500/20">
+                                            Dùng ngay
+                                        </button>
+                                    @else
+                                        <span class="text-[10px] font-bold text-red-400 italic">Chưa đủ điều kiện</span>
+                                    @endif
+                                </div>
+                            </div>
+                        @empty
+                            <div class="text-center py-10">
+                                <i class="fas fa-ticket-alt text-4xl text-gray-200 mb-4"></i>
+                                <p class="text-gray-400">Hiện không có mã giảm giá nào khả dụng.</p>
+                            </div>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 @endsection
@@ -248,8 +333,18 @@
             shipping_address: '{{ $defaultAddress->full_address ?? "" }}',
             payment_method: 'COD',
             
+            // Address System
+            provinces: [],
+            districts: [],
+            wards: [],
+            selectedProvinceCode: '',
+            selectedDistrictCode: '',
+            selectedWardCode: '',
+            addressDetail: '{{ $defaultAddress->address_detail ?? "" }}',
+
             showAddressModal: false,
             selectedAddressId: {{ $defaultAddress->id ?? 'null' }},
+            showCouponModal: false,
 
             couponCode: '',
             couponMessage: '',
@@ -257,6 +352,91 @@
             discount: 0,
             subtotal: {{ $cart->total }},
             
+            async init() {
+                await this.fetchProvinces();
+                await this.loadSavedData();
+            },
+
+            async loadSavedData() {
+                const saved = JSON.parse(localStorage.getItem('checkout_info'));
+                if (saved) {
+                    this.shipping_name = saved.name || this.shipping_name;
+                    this.shipping_phone = saved.phone || this.shipping_phone;
+                    this.selectedProvinceCode = saved.provinceCode || '';
+                    this.addressDetail = saved.addressDetail || this.addressDetail;
+                    
+                    if (this.selectedProvinceCode) {
+                        await this.onProvinceChange(true);
+                        this.selectedDistrictCode = saved.districtCode || '';
+                        if (this.selectedDistrictCode) {
+                            await this.onDistrictChange(true);
+                            this.selectedWardCode = saved.wardCode || '';
+                        }
+                    }
+                    this.updateFullAddress();
+                }
+            },
+
+            saveData() {
+                const data = {
+                    name: this.shipping_name,
+                    phone: this.shipping_phone,
+                    provinceCode: this.selectedProvinceCode,
+                    districtCode: this.selectedDistrictCode,
+                    wardCode: this.selectedWardCode,
+                    addressDetail: this.addressDetail
+                };
+                localStorage.setItem('checkout_info', JSON.stringify(data));
+            },
+
+            async fetchProvinces() {
+                try {
+                    const res = await fetch('https://provinces.open-api.vn/api/p/');
+                    this.provinces = await res.json();
+                } catch (e) { console.error('Error fetching provinces', e); }
+            },
+
+            async onProvinceChange(keepValues = false) {
+                if (!keepValues) {
+                    this.districts = [];
+                    this.wards = [];
+                    this.selectedDistrictCode = '';
+                    this.selectedWardCode = '';
+                }
+                if (!this.selectedProvinceCode) return;
+                try {
+                    const res = await fetch(`https://provinces.open-api.vn/api/p/${this.selectedProvinceCode}?depth=2`);
+                    const data = await res.json();
+                    this.districts = data.districts;
+                } catch (e) { console.error('Error fetching districts', e); }
+                this.updateFullAddress();
+                this.saveData();
+            },
+
+            async onDistrictChange(keepValues = false) {
+                if (!keepValues) {
+                    this.wards = [];
+                    this.selectedWardCode = '';
+                }
+                if (!this.selectedDistrictCode) return;
+                try {
+                    const res = await fetch(`https://provinces.open-api.vn/api/d/${this.selectedDistrictCode}?depth=2`);
+                    const data = await res.json();
+                    this.wards = data.wards;
+                } catch (e) { console.error('Error fetching wards', e); }
+                this.updateFullAddress();
+                this.saveData();
+            },
+
+            updateFullAddress() {
+                const p = this.provinces.find(x => x.code == this.selectedProvinceCode)?.name || '';
+                const d = this.districts.find(x => x.code == this.selectedDistrictCode)?.name || '';
+                const w = this.wards.find(x => x.code == this.selectedWardCode)?.name || '';
+                
+                this.shipping_address = [this.addressDetail, w, d, p].filter(Boolean).join(', ');
+                this.saveData();
+            },
+
             get totalPrice() {
                 return Math.max(0, this.subtotal - this.discount);
             },
@@ -266,7 +446,14 @@
                 this.shipping_name = addr.receiver_name;
                 this.shipping_phone = addr.receiver_phone;
                 this.shipping_address = `${addr.address_detail}, ${addr.ward}, ${addr.district}, ${addr.province}`;
+                this.addressDetail = addr.address_detail;
                 this.showAddressModal = false;
+            },
+
+            selectCoupon(code) {
+                this.couponCode = code;
+                this.showCouponModal = false;
+                this.applyCoupon();
             },
 
             async applyCoupon() {

@@ -43,8 +43,13 @@ class CartController extends Controller
         try {
             $this->cartService->addItem(
                 $request->variant_id,
-                $request->quantity
+                $request->quantity,
+                $request->filled('buy_now') && $request->buy_now == 1
             );
+
+            if ($request->filled('buy_now') && $request->buy_now == 1) {
+                return redirect()->route('checkout.index');
+            }
 
             if ($request->expectsJson()) {
                 $cart = $this->cartService->getOrCreateCart();
@@ -113,5 +118,35 @@ class CartController extends Controller
     {
         $cart = $this->cartService->getOrCreateCart();
         return response()->json(['count' => $cart->item_count]);
+    }
+
+    /**
+     * Thay đổi trạng thái chọn của item (AJAX).
+     */
+    public function toggleSelection(Request $request, $itemId)
+    {
+        $request->validate(['is_selected' => 'required|boolean']);
+        $cart = $this->cartService->toggleSelection($itemId, $request->is_selected);
+        
+        return response()->json([
+            'success' => true,
+            'total' => number_format($cart->total, 0, ',', '.') . 'đ',
+            'item_count' => $cart->items()->where('is_selected', true)->count()
+        ]);
+    }
+
+    /**
+     * Chọn hoặc bỏ chọn tất cả (AJAX).
+     */
+    public function toggleAll(Request $request)
+    {
+        $request->validate(['is_selected' => 'required|boolean']);
+        $cart = $this->cartService->toggleAll($request->is_selected);
+
+        return response()->json([
+            'success' => true,
+            'total' => number_format($cart->total, 0, ',', '.') . 'đ',
+            'item_count' => $cart->items()->where('is_selected', true)->count()
+        ]);
     }
 }

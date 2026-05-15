@@ -212,7 +212,7 @@
         </div>
         <form action="{{ route('profile.address.store') }}" method="POST" class="p-6 md:p-8">
             @csrf
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6" x-data="addressFetcher()">
                 <div>
                     <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Tên người nhận</label>
                     <input type="text" name="receiver_name" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm">
@@ -223,15 +223,36 @@
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Tỉnh / Thành phố</label>
-                    <input type="text" name="province" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm">
+                    <select name="province_name" x-model="selectedProvinceCode" @change="onProvinceChange" required
+                            class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm bg-white">
+                        <option value="">Chọn Tỉnh / Thành phố</option>
+                        <template x-for="p in provinces" :key="p.code">
+                            <option :value="p.code" x-text="p.name"></option>
+                        </template>
+                    </select>
+                    <input type="hidden" name="province" :value="provinces.find(x => x.code == selectedProvinceCode)?.name || ''">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Quận / Huyện</label>
-                    <input type="text" name="district" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm">
+                    <select name="district_name" x-model="selectedDistrictCode" @change="onDistrictChange" :disabled="!selectedProvinceCode" required
+                            class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm bg-white disabled:bg-gray-50">
+                        <option value="">Chọn Quận / Huyện</option>
+                        <template x-for="d in districts" :key="d.code">
+                            <option :value="d.code" x-text="d.name"></option>
+                        </template>
+                    </select>
+                    <input type="hidden" name="district" :value="districts.find(x => x.code == selectedDistrictCode)?.name || ''">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Phường / Xã</label>
-                    <input type="text" name="ward" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm">
+                    <select name="ward_name" x-model="selectedWardCode" :disabled="!selectedDistrictCode" required
+                            class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm bg-white disabled:bg-gray-50">
+                        <option value="">Chọn Phường / Xã</option>
+                        <template x-for="w in wards" :key="w.code">
+                            <option :value="w.code" x-text="w.name"></option>
+                        </template>
+                    </select>
+                    <input type="hidden" name="ward" :value="wards.find(x => x.code == selectedWardCode)?.name || ''">
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Địa chỉ chi tiết (Số nhà, tên đường...)</label>
@@ -250,4 +271,53 @@
     </div>
 </div>
 
+@push('scripts')
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('addressFetcher', () => ({
+            provinces: [],
+            districts: [],
+            wards: [],
+            selectedProvinceCode: '',
+            selectedDistrictCode: '',
+            selectedWardCode: '',
+
+            init() {
+                this.fetchProvinces();
+            },
+
+            async fetchProvinces() {
+                try {
+                    const res = await fetch('https://provinces.open-api.vn/api/p/');
+                    this.provinces = await res.json();
+                } catch (e) { console.error('Error fetching provinces', e); }
+            },
+
+            async onProvinceChange() {
+                this.districts = [];
+                this.wards = [];
+                this.selectedDistrictCode = '';
+                this.selectedWardCode = '';
+                if (!this.selectedProvinceCode) return;
+                try {
+                    const res = await fetch(`https://provinces.open-api.vn/api/p/${this.selectedProvinceCode}?depth=2`);
+                    const data = await res.json();
+                    this.districts = data.districts;
+                } catch (e) { console.error('Error fetching districts', e); }
+            },
+
+            async onDistrictChange() {
+                this.wards = [];
+                this.selectedWardCode = '';
+                if (!this.selectedDistrictCode) return;
+                try {
+                    const res = await fetch(`https://provinces.open-api.vn/api/d/${this.selectedDistrictCode}?depth=2`);
+                    const data = await res.json();
+                    this.wards = data.wards;
+                } catch (e) { console.error('Error fetching wards', e); }
+            }
+        }));
+    });
+</script>
+@endpush
 @endsection

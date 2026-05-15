@@ -19,21 +19,77 @@ class OrderService
         $this->inventoryService = $inventoryService;
     }
 
-    /**
-     * Tạo đơn hàng từ giỏ hàng hiện tại.
-     */
     public function createFromCart(array $data)
     {
-        $cart = $this->cartService->getOrCreateCart();
-        
-        if ($cart->items->isEmpty()) {
-            throw new Exception("Giỏ hàng của bạn đang trống.");
-        }
-
         $paymentMethod = $data['payment_method'] ?? 'COD';
         $isOnlinePayment = in_array($paymentMethod, ['MOMO', 'VNPAY']);
 
-        return DB::transaction(function () use ($cart, $data, $isOnlinePayment) {
+        // LUỒNG MUA NGAY (Direct Buy - Bỏ qua giỏ hàng)
+        if (isset($data['variant_id'])) {
+            $variant = \App\Models\ProductVariant::findOrFail($data['variant_id']);
+            $qty = $data['quantity'] ?? 1;
+            $subtotal = $variant->price * $qty;
+
+            return DB::transaction(function () use ($variant, $qty, $data, $isOnlinePayment, $subtotal) {
+                // Kiểm tra tồn kho
+                $stock = $this->inventoryService->getStock($variant->id);
+                if ($stock < $qty) {
+                    throw new Exception("Sản phẩm {$variant->product->name} hiện chỉ còn {$stock} sản phẩm.");
+                }
+
+                $order = Order::create([
+                    'user_id'          => auth()->id(),
+                    'address_id'       => $data['address_id'] ?? null,
+                    'coupon_id'        => $data['coupon_id'] ?? null,
+                    'subtotal'         => $subtotal,
+                    'discount_amount'  => $data['discount_amount'] ?? 0,
+                    'shipping_fee'     => $data['shipping_fee'] ?? 0,
+                    'total_price'      => $subtotal + ($data['shipping_fee'] ?? 0) - ($data['discount_amount'] ?? 0),
+                    'status'           => 'PENDING',
+                    'payment_status'   => 'UNPAID',
+                    'payment_method'   => $data['payment_method'] ?? 'COD',
+                    'shipping_name'    => $data['shipping_name'],
+                    'shipping_phone'   => $data['shipping_phone'],
+                    'shipping_address' => $data['shipping_address'],
+                    'note'             => $data['note'] ?? null,
+                ]);
+
+                OrderItem::create([
+                    'order_id'   => $order->id,
+                    'variant_id' => $variant->id,
+                    'quantity'   => $qty,
+                    'price'      => $variant->price,
+                    'subtotal'   => $subtotal,
+                ]);
+
+                // Ghi log lịch sử
+                OrderStatusHistory::create([
+                    'order_id' => $order->id,
+                    'status'   => 'PENDING',
+                    'note'     => 'Đơn hàng được tạo (Mua ngay)',
+                ]);
+
+                if (!$isOnlinePayment) {
+                    $this->inventoryService->reduceStock($variant->id, $qty, "Đặt hàng trực tiếp #{$order->id}");
+                }
+
+                // Xoá sản phẩm này khỏi giỏ hàng nếu có
+                $cart = $this->cartService->getOrCreateCart();
+                $cart->items()->where('variant_id', $variant->id)->delete();
+
+                return $order;
+            });
+        }
+
+        // LUỒNG GIỎ HÀNG THÔNG THƯỜNG
+        $cart = $this->cartService->getOrCreateCart();
+        $selectedItems = $cart->selectedItems;
+        
+        if ($selectedItems->isEmpty()) {
+            throw new Exception("Vui lòng chọn ít nhất một sản phẩm để thanh toán.");
+        }
+
+        return DB::transaction(function () use ($cart, $selectedItems, $data, $isOnlinePayment) {
             // 1. Tạo bản ghi Order
             $order = Order::create([
                 'user_id'          => auth()->id(),
@@ -53,7 +109,7 @@ class OrderService
             ]);
 
             // 2. Chuyển Cart Items sang Order Items
-            foreach ($cart->items as $cartItem) {
+            foreach ($selectedItems as $cartItem) {
                 // Kiểm tra tồn kho cho tất cả phương thức
                 $stock = $this->inventoryService->getStock($cartItem->variant_id);
                 if ($stock < $cartItem->quantity) {

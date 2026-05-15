@@ -8,6 +8,11 @@ use App\Http\Controllers\Customer\ProductController;
 use App\Http\Controllers\Customer\CartController;
 use App\Http\Controllers\Customer\CheckoutController;
 use App\Http\Controllers\Customer\AIController;
+use App\Http\Controllers\Auth\SocialController;
+
+// ===================== SOCIAL LOGIN =====================
+Route::get('/auth/{provider}/redirect', [SocialController::class, 'redirectToProvider'])->name('social.redirect');
+Route::get('/auth/{provider}/callback', [SocialController::class, 'handleProviderCallback'])->name('social.callback');
 
 // ===================== TRANG CHỦ =====================
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -29,6 +34,8 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::put('/gio-hang/cap-nhat/{id}', [CartController::class, 'update'])->name('cart.update');
     Route::delete('/gio-hang/xoa/{id}',   [CartController::class, 'remove'])->name('cart.remove');
     Route::get('/gio-hang/count',         [CartController::class, 'count'])->name('cart.count');
+    Route::post('/gio-hang/toggle/{id}',  [CartController::class, 'toggleSelection'])->name('cart.toggle');
+    Route::post('/gio-hang/toggle-all',   [CartController::class, 'toggleAll'])->name('cart.toggle_all');
 
     // THANH TOÁN
     Route::get('/thanh-toan',             [CheckoutController::class, 'index'])->name('checkout.index');
@@ -85,5 +92,4 @@ Route::post('/logout', [LoginController::class, 'logout'])
 // ===================== PAYMENT CALLBACKS (Public) =====================
 // Các route này nhận kết quả từ Gateway (MoMo, VNPAY)
 // Cần để ngoài auth middleware và tắt CSRF
-Route::match(['get', 'post'], '/thanh-toan/momo-callback', [CheckoutController::class, 'momoCallback'])->name('checkout.momo_callback');
 Route::match(['get', 'post'], '/thanh-toan/vnpay-callback', [CheckoutController::class, 'vnpayCallback'])->name('checkout.vnpay_callback');

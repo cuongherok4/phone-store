@@ -80,6 +80,24 @@
                         class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 rounded-2xl transition duration-200">
                     Đăng ký tài khoản
                 </button>
+
+                <div class="relative flex items-center justify-center my-6">
+                    <div class="border-t border-gray-200 w-full"></div>
+                    <span class="bg-white px-4 text-sm text-gray-500 absolute">Hoặc đăng ký bằng</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <a href="{{ route('social.redirect', 'google') }}"
+                       class="flex items-center justify-center gap-2 px-4 py-3 border border-gray-200 rounded-2xl hover:bg-gray-50 transition font-medium text-gray-700">
+                        <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-5 h-5" alt="Google">
+                        Google
+                    </a>
+                    <a href="{{ route('social.redirect', 'facebook') }}"
+                       class="flex items-center justify-center gap-2 px-4 py-3 border border-gray-200 rounded-2xl hover:bg-gray-50 transition font-medium text-gray-700">
+                        <img src="https://www.svgrepo.com/show/475647/facebook-color.svg" class="w-5 h-5" alt="Facebook">
+                        Facebook
+                    </a>
+                </div>
             </div>
         </form>
 

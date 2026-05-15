@@ -25,17 +25,53 @@ class CheckoutController extends Controller
     /**
      * Hiển thị trang checkout.
      */
-    public function index()
+    public function index(Request $request)
     {
         $cart = $this->cartService->getCartData();
-        if ($cart->items->isEmpty()) {
-            return redirect()->route('cart.index')->with('error', 'Giỏ hàng của bạn đang trống.');
+
+        // Xử lý luồng Mua ngay (Direct Buy)
+        if ($request->has('variant_id')) {
+            $variant = \App\Models\ProductVariant::with(['product', 'images', 'variantAttributes.attributeValue'])->findOrFail($request->variant_id);
+            $qty = $request->get('quantity', 1);
+            
+            // Tạo một Cart "ảo" cho view
+            $mockItem = new \App\Models\CartItem([
+                'variant_id' => $variant->id,
+                'quantity' => $qty,
+                'is_selected' => true, // QUAN TRỌNG: Phải set true để accessor total tính toán được
+            ]);
+            $mockItem->setRelation('variant', $variant);
+            
+            // Ép dữ liệu vào $cart để các accessor (total, selectedItems) dùng dữ liệu ảo
+            $cart->setRelation('items', collect([$mockItem]));
+            $cart->setRelation('selectedItems', collect([$mockItem]));
+            
+            // Đảm bảo total lấy giá trị đúng
+            $cart->total = $variant->price * $qty;
+        }
+
+        if ($cart->selectedItems->isEmpty()) {
+            return redirect()->route('cart.index')->with('error', 'Vui lòng chọn sản phẩm bạn muốn thanh toán.');
         }
 
         $addresses = auth()->check() ? auth()->user()->addresses : collect();
         $defaultAddress = $addresses->where('is_default', true)->first() ?? $addresses->first();
 
-        return view('customer.checkout.index', compact('cart', 'addresses', 'defaultAddress'));
+        // Lấy danh sách mã giảm giá khả dụng
+        $coupons = Coupon::where('is_active', true)
+            ->where(function($q) {
+                $q->whereNull('start_at')->orWhere('start_at', '<=', now());
+            })
+            ->where(function($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>=', now());
+            })
+            ->where(function($q) {
+                $q->whereNull('max_uses')->orWhereRaw('used_count < max_uses');
+            })
+            ->orderBy('expires_at', 'asc')
+            ->get();
+
+        return view('customer.checkout.index', compact('cart', 'addresses', 'defaultAddress', 'coupons'));
     }
 
     /**
@@ -49,7 +85,7 @@ class CheckoutController extends Controller
             'shipping_address' => 'required|string|max:500',
             'note'             => 'nullable|string|max:1000',
             'address_id'       => 'nullable|exists:user_addresses,id',
-            'payment_method'   => 'required|in:COD,MOMO,VNPAY',
+            'payment_method'   => 'required|in:COD,VNPAY',
         ]);
 
         try {
@@ -62,9 +98,6 @@ class CheckoutController extends Controller
             $order = $this->orderService->createFromCart($data);
 
             // Xử lý theo phương thức thanh toán
-            if ($order->payment_method === 'MOMO') {
-                return redirect($this->paymentService->createMomoPayment($order));
-            }
             
             if ($order->payment_method === 'VNPAY') {
                 return redirect($this->paymentService->createVnpayPayment($order));
@@ -129,24 +162,6 @@ class CheckoutController extends Controller
             ->with('error', "Thanh toán {$method} bị hủy.");
     }
 
-    /**
-     * Callback sau khi thanh toán MoMo.
-     */
-    public function momoCallback(Request $request)
-    {
-        $inputData = $request->all();
-        $result = $this->paymentService->verifyMomoPayment($inputData);
-
-        if ($result['success']) {
-            $order = \App\Models\Order::find($result['order_id']);
-            if ($this->orderService->confirmOnlinePayment($order)) {
-                $this->sendOrderEmail($order);
-            }
-            return redirect()->route('checkout.success', $order->id)->with('success', 'Thanh toán MoMo thành công!');
-        }
-
-        return redirect()->route('checkout.index')->with('error', $result['message'] ?? 'Thanh toán MoMo thất bại hoặc bị hủy.');
-    }
 
 
 

@@ -127,7 +127,10 @@ class OrderController extends Controller
     {
         $order = Order::with(['items', 'user', 'address'])->findOrFail($id);
         
-        $pdf = Pdf::loadView('admin.orders.invoice', compact('order'));
+        // Lấy thông tin cửa hàng
+        $settings = \App\Models\Setting::where('group', 'store')->pluck('value', 'key');
+        
+        $pdf = Pdf::loadView('admin.orders.invoice', compact('order', 'settings'));
         
         return $pdf->download("hoadon-{$order->id}.pdf");
     }

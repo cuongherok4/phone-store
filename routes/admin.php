@@ -99,4 +99,9 @@ Route::middleware('admin')->group(function () {
     Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
     Route::post('/settings', [SettingController::class, 'update'])->name('settings.update');
 
+    // ── Báo cáo & Xuất dữ liệu ──
+    Route::get('/reports', [\App\Http\Controllers\Admin\ReportController::class, 'index'])->name('reports.index');
+    Route::get('/reports/orders/export', [\App\Http\Controllers\Admin\ReportController::class, 'exportOrders'])->name('reports.orders.export');
+    Route::get('/reports/inventory/export', [\App\Http\Controllers\Admin\ReportController::class, 'exportInventory'])->name('reports.inventory.export');
+
 });

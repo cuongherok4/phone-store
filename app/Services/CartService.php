@@ -33,32 +33,43 @@ class CartService
     /**
      * Thêm sản phẩm vào giỏ hàng.
      */
-    public function addItem(int $variantId, int $quantity)
+    public function addItem(int $variantId, int $quantity, bool $buyNow = false)
     {
         $cart = $this->getOrCreateCart();
+
+        if ($buyNow) {
+            // Shopee style: Mua ngay chỉ mua sản phẩm đó -> bỏ chọn tất cả các thứ khác
+            $cart->items()->update(['is_selected' => false]);
+        }
+
         $variant = ProductVariant::findOrFail($variantId);
 
         // Kiểm tra tồn kho
         $availableStock = $this->inventoryService->getStock($variantId);
         
         $cartItem = $cart->items()->where('variant_id', $variantId)->first();
-        $currentQty = $cartItem ? $cartItem->quantity : 0;
-        $newQty = $currentQty + $quantity;
+        
+        // Shopee style for Buy Now: Overwrite quantity instead of adding
+        $newQty = ($buyNow) ? $quantity : (($cartItem ? $cartItem->quantity : 0) + $quantity);
 
         if ($newQty > $availableStock) {
             throw new \Exception("Không đủ hàng trong kho. Hiện còn: {$availableStock}");
         }
 
         if ($cartItem) {
-            $cartItem->update(['quantity' => $newQty]);
+            $cartItem->update([
+                'quantity' => $newQty,
+                'is_selected' => true
+            ]);
         } else {
             $cart->items()->create([
                 'variant_id' => $variantId,
-                'quantity' => $quantity
+                'quantity' => $quantity,
+                'is_selected' => true
             ]);
         }
 
-        return $cart->load('items.variant.product', 'items.variant.images');
+        return $cart->load('items.variant.product', 'items.variant.variantAttributes.attributeValue');
     }
 
     /**
@@ -131,12 +142,33 @@ class CartService
     }
 
     /**
+     * Thay đổi trạng thái chọn của item.
+     */
+    public function toggleSelection(int $itemId, bool $isSelected)
+    {
+        $cartItem = CartItem::findOrFail($itemId);
+        $cartItem->update(['is_selected' => $isSelected]);
+        return $cartItem->cart->load('items.variant.product', 'items.variant.variantAttributes.attributeValue');
+    }
+
+    /**
+     * Chọn hoặc bỏ chọn tất cả.
+     */
+    public function toggleAll(bool $isSelected)
+    {
+        $cart = $this->getOrCreateCart();
+        $cart->items()->update(['is_selected' => $isSelected]);
+        return $cart->load('items.variant.product', 'items.variant.variantAttributes.attributeValue');
+    }
+
+    /**
      * Xoá toàn bộ giỏ hàng (sau khi đặt hàng).
+     * Chỉ xoá những item đã được chọn để thanh toán.
      */
     public function clearCart()
     {
         $cart = $this->getOrCreateCart();
-        $cart->items()->delete();
+        $cart->items()->where('is_selected', true)->delete();
         return $cart;
     }
 }
