@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Coupon;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class CouponController extends Controller
 {
@@ -39,22 +40,7 @@ class CouponController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'code' => 'required|string|max:50|unique:coupons,code',
-            'description' => 'nullable|string|max:255',
-            'discount_type' => 'required|in:percent,fixed',
-            'discount_value' => 'required|numeric|min:0',
-            'max_discount_amount' => 'nullable|numeric|min:0',
-            'min_order_value' => 'nullable|numeric|min:0',
-            'max_uses' => 'nullable|integer|min:1',
-            'max_uses_per_user' => 'nullable|integer|min:1',
-            'start_at' => 'nullable|date',
-            'expires_at' => 'nullable|date|after_or_equal:start_at',
-            'is_active' => 'boolean',
-        ]);
-
-        $validated['is_active'] = $request->has('is_active');
-        $validated['max_uses_per_user'] = $validated['max_uses_per_user'] ?? 1;
+        $validated = $this->validateCoupon($request);
 
         Coupon::create($validated);
 
@@ -68,21 +54,7 @@ class CouponController extends Controller
 
     public function update(Request $request, Coupon $coupon)
     {
-        $validated = $request->validate([
-            'code' => 'required|string|max:50|unique:coupons,code,' . $coupon->id,
-            'description' => 'nullable|string|max:255',
-            'discount_type' => 'required|in:percent,fixed',
-            'discount_value' => 'required|numeric|min:0',
-            'max_discount_amount' => 'nullable|numeric|min:0',
-            'min_order_value' => 'nullable|numeric|min:0',
-            'max_uses' => 'nullable|integer|min:1',
-            'max_uses_per_user' => 'nullable|integer|min:1',
-            'start_at' => 'nullable|date',
-            'expires_at' => 'nullable|date|after_or_equal:start_at',
-            'is_active' => 'boolean',
-        ]);
-
-        $validated['is_active'] = $request->has('is_active');
+        $validated = $this->validateCoupon($request, $coupon);
 
         $coupon->update($validated);
 
@@ -99,5 +71,47 @@ class CouponController extends Controller
         $coupon->delete();
 
         return redirect()->route('admin.coupons.index')->with('success', 'Đã xóa mã giảm giá thành công!');
+    }
+
+    private function validateCoupon(Request $request, ?Coupon $coupon = null): array
+    {
+        $request->merge([
+            'code' => strtoupper(trim((string) $request->input('code'))),
+        ]);
+
+        $couponId = $coupon?->id;
+
+        $validated = $request->validate([
+            'code' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('coupons', 'code')->ignore($couponId),
+            ],
+            'description' => 'nullable|string|max:255',
+            'discount_type' => 'required|in:percent,fixed',
+            'discount_value' => [
+                'required',
+                'numeric',
+                'gt:0',
+                Rule::when($request->input('discount_type') === 'percent', ['max:100']),
+            ],
+            'max_discount_amount' => 'nullable|numeric|min:0',
+            'min_order_value' => 'nullable|numeric|min:0',
+            'max_uses' => 'nullable|integer|min:1',
+            'max_uses_per_user' => 'nullable|integer|min:1',
+            'start_at' => 'nullable|date',
+            'expires_at' => 'nullable|date|after_or_equal:start_at',
+            'is_active' => 'boolean',
+        ]);
+
+        $validated['is_active'] = $request->has('is_active');
+        $validated['max_uses_per_user'] = $validated['max_uses_per_user'] ?? 1;
+
+        if ($validated['discount_type'] === 'fixed') {
+            $validated['max_discount_amount'] = null;
+        }
+
+        return $validated;
     }
 }

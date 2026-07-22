@@ -24,11 +24,11 @@
 | **GĐ 2** | Quản trị sản phẩm và danh mục | 🟢 Done | **100%** |
 | **GĐ 3** | Luồng mua hàng cho khách | 🟢 Done | **100%** |
 | **GĐ 4** | Tài khoản, đánh giá, yêu thích, thông báo | 🟢 Done | **100%** |
-| **GĐ 5** | Quản trị vận hành shop | 🟢 Done | **95%** |
+| **GĐ 5** | Quản trị vận hành shop | 🟢 Done | **100%** |
 | **GĐ 6** | Thanh toán, hóa đơn, báo cáo | 🟡 Doing | **85%** |
 | **GĐ 7** | Hiệu năng và tối ưu truy vấn | 🟡 Doing | **60%** |
-| **GĐ 8** | Bảo mật và phân quyền | 🟡 Doing | **55%** |
-| **GĐ 9** | Kiểm thử tự động | 🔴 Todo | **15%** |
+| **GĐ 8** | Bảo mật và phân quyền | 🟡 Doing | **65%** |
+| **GĐ 9** | Kiểm thử tự động | 🟡 Doing | **25%** |
 | **GĐ 10** | CI/CD và triển khai thật | 🟡 Doing | **45%** |
 
 ### 💡 Đánh giá hiện tại
@@ -183,7 +183,7 @@ git commit -m "docs(deploy): add production environment checklist"
 | 5.4 | Quản lý kho nhiều warehouse | 🟢 | Nhập/xuất/điều chỉnh tồn kho |
 | 5.5 | Lịch sử tồn kho | 🟢 | Ghi log thay đổi số lượng |
 | 5.6 | Quản lý nhà cung cấp | 🟢 | Danh sách, thêm/sửa/xóa |
-| 5.7 | Quản lý coupon | 🟡 | CRUD đã có, cần tách CouponService và siết validation |
+| 5.7 | Quản lý coupon | 🟢 | Có CouponService, validate giới hạn dùng, tính giảm giá server-side, ghi lịch sử sử dụng |
 | 5.8 | Quản lý review | 🟢 | Duyệt/xóa review, sync rating sản phẩm |
 | 5.9 | Quản lý người dùng | 🟢 | Danh sách, bật/tắt trạng thái |
 | 5.10 | Cấu hình hệ thống | 🟢 | Settings cho thông tin shop/thanh toán |
@@ -233,7 +233,7 @@ git commit -m "docs(deploy): add production environment checklist"
 | 8.4 | Policy hủy đơn hàng | 🔴 | Chỉ chủ đơn/admin được hủy theo trạng thái hợp lệ |
 | 8.5 | Rate limit login | 🔴 | Chống brute force |
 | 8.6 | Rate limit checkout/coupon | 🔴 | Chống spam đặt hàng/check mã |
-| 8.7 | Coupon validation đầy đủ | 🔴 | Active, thời gian, số lượt, user usage, min order |
+| 8.7 | Coupon validation đầy đủ | 🟢 | Active, thời gian, tổng lượt, lượt/user, đơn tối thiểu, tính giảm giá server-side |
 | 8.8 | Idempotent payment callback | 🟡 | Đã có hướng xử lý, cần test tự động |
 | 8.9 | Không commit secret | 🟢 | `.env` ignore, dùng `.env.example` |
 | 8.10 | Kiểm tra file upload | 🔴 | Ràng buộc mime/size và lưu storage an toàn |
@@ -247,7 +247,7 @@ git commit -m "docs(deploy): add production environment checklist"
 | 9.1 | Xóa/đổi ExampleTest mặc định | 🔴 | Test hiện tại chưa có giá trị thật |
 | 9.2 | Test InventoryService | 🔴 | Import, deduct, restore, adjust |
 | 9.3 | Test OrderService | 🔴 | COD, online payment, cancel, stock deduction |
-| 9.4 | Test CouponService | 🔴 | Sau khi tách service |
+| 9.4 | Test CouponService | 🟢 | Đã có test validate, calculate, record usage |
 | 9.5 | Test Cart flow | 🔴 | Add/update/remove/select items |
 | 9.6 | Test Checkout flow | 🔴 | Tạo đơn, validate tồn kho, coupon |
 | 9.7 | Test quyền xem đơn | 🔴 | Chống xem đơn người khác |
@@ -362,6 +362,7 @@ Xây dựng hệ thống thương mại điện tử bán điện thoại bằng
 | 23/07/2026 | Hoàn thành mục `3.9`: kiểm tra tồn kho trước thanh toán và chống oversell khi checkout đồng thời |
 | 23/07/2026 | Hoàn thành mục `4.6`: kiểm tra quyền sở hữu khi khách hủy đơn hàng |
 | 23/07/2026 | Hoàn thành mục `5.3`: admin hủy đơn dùng service chung và hoàn kho bằng log `RETURN` |
+| 23/07/2026 | Hoàn thành mục `5.7`: tách CouponService, áp dụng coupon server-side và thêm test |
 
 ---
 
