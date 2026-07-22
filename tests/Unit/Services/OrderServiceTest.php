@@ -16,6 +16,7 @@ class OrderServiceTest extends TestCase
 {
     private OrderService $service;
     private $inventoryService;
+    private $cartService;
 
     protected function setUp(): void
     {
@@ -57,8 +58,9 @@ class OrderServiceTest extends TestCase
         });
 
         $this->inventoryService = Mockery::mock(InventoryService::class);
+        $this->cartService = Mockery::mock(CartService::class);
         $this->service = new OrderService(
-            Mockery::mock(CartService::class),
+            $this->cartService,
             $this->inventoryService,
             Mockery::mock(CouponService::class)
         );
@@ -142,5 +144,79 @@ class OrderServiceTest extends TestCase
             'new_status' => 'CANCELLED',
             'changed_by' => 99,
         ]);
+    }
+
+    public function test_online_payment_confirmation_deducts_stock_once(): void
+    {
+        $order = Order::create([
+            'user_id' => 1,
+            'status' => 'PENDING',
+            'payment_method' => 'VNPAY',
+            'payment_status' => 'UNPAID',
+        ]);
+
+        \DB::table('order_items')->insert([
+            'order_id' => $order->id,
+            'variant_id' => 10,
+            'quantity' => 2,
+        ]);
+
+        $this->inventoryService
+            ->shouldReceive('deduct')
+            ->once()
+            ->with(10, 2, $order->id);
+
+        $this->cartService
+            ->shouldReceive('clearCart')
+            ->once();
+
+        $this->assertTrue($this->service->confirmOnlinePayment($order));
+
+        $order->refresh();
+
+        $this->assertSame('PAID', $order->payment_status);
+        $this->assertSame('CONFIRMED', $order->status);
+        $this->assertDatabaseHas('order_status_histories', [
+            'order_id' => $order->id,
+            'old_status' => 'PENDING',
+            'new_status' => 'CONFIRMED',
+        ]);
+    }
+
+    public function test_online_payment_confirmation_is_idempotent(): void
+    {
+        $order = Order::create([
+            'user_id' => 1,
+            'status' => 'CONFIRMED',
+            'payment_method' => 'VNPAY',
+            'payment_status' => 'PAID',
+        ]);
+
+        \DB::table('order_items')->insert([
+            'order_id' => $order->id,
+            'variant_id' => 10,
+            'quantity' => 2,
+        ]);
+
+        $this->assertFalse($this->service->confirmOnlinePayment($order));
+        $this->assertDatabaseMissing('order_status_histories', [
+            'order_id' => $order->id,
+            'new_status' => 'CONFIRMED',
+        ]);
+    }
+
+    public function test_cancelled_order_cannot_be_confirmed_as_online_paid(): void
+    {
+        $order = Order::create([
+            'user_id' => 1,
+            'status' => 'CANCELLED',
+            'payment_method' => 'VNPAY',
+            'payment_status' => 'UNPAID',
+        ]);
+
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('đã bị hủy');
+
+        $this->service->confirmOnlinePayment($order);
     }
 }

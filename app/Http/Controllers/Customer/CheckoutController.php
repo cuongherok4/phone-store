@@ -154,23 +154,29 @@ class CheckoutController extends Controller
         if ($result === 'success') {
             $order = \App\Models\Order::findOrFail($orderId);
 
-            if ($order->payment_status !== 'PAID') {
-                if ($this->orderService->confirmOnlinePayment($order)) {
+            try {
+                $isFirstConfirmation = $this->orderService->confirmOnlinePayment($order);
+
+                \App\Models\Payment::updateOrCreate(
+                    [
+                        'method' => $method,
+                        'transaction_id' => 'DEMO_' . $method . '_' . $order->id,
+                    ],
+                    [
+                        'order_id'         => $order->id,
+                        'amount'           => $order->total_price,
+                        'status'           => 'SUCCESS',
+                        'gateway_response' => json_encode(['demo' => true, 'method' => $method]),
+                        'paid_at'          => now(),
+                    ]
+                );
+
+                if ($isFirstConfirmation) {
                     $this->sendOrderEmail($order);
                 }
-
-                \App\Models\Payment::create([
-                    'order_id'         => $order->id,
-                    'method'           => $method,
-                    'transaction_id'   => 'DEMO_' . strtoupper(uniqid()),
-                    'amount'           => $order->total_price,
-                    'status'           => 'SUCCESS',
-                    'gateway_response' => json_encode(['demo' => true, 'method' => $method]),
-                    'paid_at'          => now(),
-                ]);
+            } catch (\Exception $e) {
+                return redirect()->route('checkout.index')->with('error', $e->getMessage());
             }
-
-            $this->sendOrderEmail($order);
 
             return redirect()->route('checkout.success', $order->id)
                 ->with('success', "Thanh toán {$method} thành công!");
@@ -193,14 +199,27 @@ class CheckoutController extends Controller
 
         if ($result['success']) {
             $order = \App\Models\Order::find($result['order_id']);
-            if ($this->orderService->confirmOnlinePayment($order)) {
-                $this->sendOrderEmail($order);
+
+            if (! $order) {
+                return redirect()->route('checkout.index')->with('error', 'Không tìm thấy đơn hàng thanh toán.');
             }
-            return redirect()->route('checkout.success', $order->id)->with('success', 'Thanh toán VNPAY thành công!');
+
+            try {
+                if ($this->orderService->confirmOnlinePayment($order)) {
+                    $this->sendOrderEmail($order);
+                }
+
+                return redirect()->route('checkout.success', $order->id)->with('success', 'Thanh toán VNPAY thành công!');
+            } catch (\Exception $e) {
+                return redirect()->route('checkout.index')->with('error', $e->getMessage());
+            }
         }
 
         return redirect()->route('checkout.index')->with('error', $result['message'] ?? 'Thanh toán VNPAY thất bại hoặc bị hủy.');
     }
+
+
+
 
     /**
      * Gửi mail xác nhận đơn hàng.

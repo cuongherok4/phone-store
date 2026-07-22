@@ -25,10 +25,10 @@
 | **GĐ 3** | Luồng mua hàng cho khách | 🟢 Done | **100%** |
 | **GĐ 4** | Tài khoản, đánh giá, yêu thích, thông báo | 🟢 Done | **100%** |
 | **GĐ 5** | Quản trị vận hành shop | 🟢 Done | **100%** |
-| **GĐ 6** | Thanh toán, hóa đơn, báo cáo | 🟡 Doing | **85%** |
+| **GĐ 6** | Thanh toán, hóa đơn, báo cáo | 🟡 Doing | **90%** |
 | **GĐ 7** | Hiệu năng và tối ưu truy vấn | 🟡 Doing | **60%** |
-| **GĐ 8** | Bảo mật và phân quyền | 🟡 Doing | **65%** |
-| **GĐ 9** | Kiểm thử tự động | 🟡 Doing | **25%** |
+| **GĐ 8** | Bảo mật và phân quyền | 🟡 Doing | **70%** |
+| **GĐ 9** | Kiểm thử tự động | 🟡 Doing | **30%** |
 | **GĐ 10** | CI/CD và triển khai thật | 🟡 Doing | **45%** |
 
 ### 💡 Đánh giá hiện tại
@@ -197,7 +197,7 @@ git commit -m "docs(deploy): add production environment checklist"
 | 6.1 | Thanh toán COD | 🟢 | Luồng mặc định |
 | 6.2 | Thanh toán VNPAY | 🟢 | Có callback, cần kiểm thử sandbox kỹ |
 | 6.3 | Thanh toán MoMo | 🟢 | Có cấu hình payment |
-| 6.4 | Xác nhận thanh toán online | 🟡 | Cần đảm bảo idempotent tuyệt đối |
+| 6.4 | Xác nhận thanh toán online | 🟢 | Callback khóa dòng order trong transaction, chỉ trừ kho/log/gửi mail ở lần xác nhận đầu tiên |
 | 6.5 | In hóa đơn PDF | 🟢 | Admin in hóa đơn |
 | 6.6 | Export đơn hàng Excel | 🟢 | Phục vụ báo cáo vận hành |
 | 6.7 | Export tồn kho Excel | 🟢 | Phục vụ kiểm kho |
@@ -234,7 +234,7 @@ git commit -m "docs(deploy): add production environment checklist"
 | 8.5 | Rate limit login | 🔴 | Chống brute force |
 | 8.6 | Rate limit checkout/coupon | 🔴 | Chống spam đặt hàng/check mã |
 | 8.7 | Coupon validation đầy đủ | 🟢 | Active, thời gian, tổng lượt, lượt/user, đơn tối thiểu, tính giảm giá server-side |
-| 8.8 | Idempotent payment callback | 🟡 | Đã có hướng xử lý, cần test tự động |
+| 8.8 | Idempotent payment callback | 🟢 | Đã có khóa order, payment record idempotent theo mã giao dịch và test service |
 | 8.9 | Không commit secret | 🟢 | `.env` ignore, dùng `.env.example` |
 | 8.10 | Kiểm tra file upload | 🔴 | Ràng buộc mime/size và lưu storage an toàn |
 
@@ -246,7 +246,7 @@ git commit -m "docs(deploy): add production environment checklist"
 |---|---|:---:|---|
 | 9.1 | Xóa/đổi ExampleTest mặc định | 🔴 | Test hiện tại chưa có giá trị thật |
 | 9.2 | Test InventoryService | 🔴 | Import, deduct, restore, adjust |
-| 9.3 | Test OrderService | 🔴 | COD, online payment, cancel, stock deduction |
+| 9.3 | Test OrderService | 🟡 | Đã có test hủy đơn, hoàn kho và xác nhận thanh toán online idempotent |
 | 9.4 | Test CouponService | 🟢 | Đã có test validate, calculate, record usage |
 | 9.5 | Test Cart flow | 🔴 | Add/update/remove/select items |
 | 9.6 | Test Checkout flow | 🔴 | Tạo đơn, validate tồn kho, coupon |
@@ -283,7 +283,7 @@ git commit -m "docs(deploy): add production environment checklist"
 | **8.7** | Tách `CouponService` và siết validation | Liên quan trực tiếp đến tiền/giảm giá |
 | **8.3, 8.4** | Thêm policy cho order | Tránh lỗi bảo mật nghiêm trọng |
 | **8.5, 8.6** | Thêm rate limit login/checkout/coupon | Chống spam và abuse |
-| **6.4** | Xác nhận thanh toán online idempotent | Không duplicate transaction |
+| **6.4** | Xác nhận thanh toán online idempotent | Đã hoàn thành, tiếp tục kiểm thử sandbox gateway khi có credentials thật |
 
 ### Phase 2: Test Nghiệp Vụ Cốt Lõi (P0)
 
@@ -363,6 +363,7 @@ Xây dựng hệ thống thương mại điện tử bán điện thoại bằng
 | 23/07/2026 | Hoàn thành mục `4.6`: kiểm tra quyền sở hữu khi khách hủy đơn hàng |
 | 23/07/2026 | Hoàn thành mục `5.3`: admin hủy đơn dùng service chung và hoàn kho bằng log `RETURN` |
 | 23/07/2026 | Hoàn thành mục `5.7`: tách CouponService, áp dụng coupon server-side và thêm test |
+| 23/07/2026 | Hoàn thành mục `6.4`: xác nhận thanh toán online idempotent, tránh trừ kho/log/mail trùng khi callback lặp |
 
 ---
 
