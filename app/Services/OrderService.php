@@ -26,16 +26,18 @@ class OrderService
 
         // LUỒNG MUA NGAY (Direct Buy - Bỏ qua giỏ hàng)
         if (isset($data['variant_id'])) {
-            $variant = \App\Models\ProductVariant::findOrFail($data['variant_id']);
+            $variant = \App\Models\ProductVariant::with(['product', 'variantAttributes.attributeValue'])
+                ->findOrFail($data['variant_id']);
             $qty = $data['quantity'] ?? 1;
             $subtotal = $variant->price * $qty;
 
             return DB::transaction(function () use ($variant, $qty, $data, $isOnlinePayment, $subtotal) {
-                // Kiểm tra tồn kho
-                $stock = $this->inventoryService->getStock($variant->id);
-                if ($stock < $qty) {
-                    throw new Exception("Sản phẩm {$variant->product->name} hiện chỉ còn {$stock} sản phẩm.");
-                }
+                $this->inventoryService->assertAvailable(
+                    $variant->id,
+                    $qty,
+                    $variant->product->name,
+                    true
+                );
 
                 $order = Order::create([
                     'user_id'          => auth()->id(),
@@ -97,6 +99,20 @@ class OrderService
         }
 
         return DB::transaction(function () use ($cart, $selectedItems, $data, $isOnlinePayment) {
+            $selectedItems->loadMissing([
+                'variant.product',
+                'variant.variantAttributes.attributeValue',
+            ]);
+
+            $this->inventoryService->assertManyAvailable(
+                $selectedItems->map(fn ($cartItem) => [
+                    'variant_id' => $cartItem->variant_id,
+                    'quantity'   => $cartItem->quantity,
+                    'name'       => $cartItem->variant->product->name,
+                ])->all(),
+                true
+            );
+
             // 1. Tạo bản ghi Order
             $order = Order::create([
                 'user_id'          => auth()->id(),
@@ -117,12 +133,6 @@ class OrderService
 
             // 2. Chuyển Cart Items sang Order Items
             foreach ($selectedItems as $cartItem) {
-                // Kiểm tra tồn kho cho tất cả phương thức
-                $stock = $this->inventoryService->getStock($cartItem->variant_id);
-                if ($stock < $cartItem->quantity) {
-                    throw new Exception("Sản phẩm \"{$cartItem->variant->product->name}\" hiện đã hết hàng hoặc không đủ số lượng.");
-                }
-
                 // Lấy tên variant (RAM/ROM/màu)
                 $variantAttrs = $cartItem->variant->variantAttributes
                     ->map(fn($va) => $va->attributeValue->value ?? '')
