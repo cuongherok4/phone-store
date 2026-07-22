@@ -1,190 +1,144 @@
-Dưới đây là phiên bản **tiendo.md** đã được tôi viết lại, rõ ràng hơn, dễ nhìn hơn và dễ thực hiện hơn so với bản cũ.
+# 📱 Phone Store — Theo Dõi Tiến Độ
+
+> **Cập nhật lần cuối:** 23/07/2026
+> **Quy ước:** ✅ Hoàn thành | 🔄 Đang làm | ⬜ Chưa làm | ❌ Bỏ qua
 
 ---
 
-# Phone Store — Laravel | Theo dõi tiến độ
-
-> **Lưu file này tại:** `docs/tiendo.md`  
-> Khi bắt đầu session mới, hãy paste nội dung file này để tôi có thể tiếp tục đúng tiến độ.
-
----
-
-## Thông tin dự án
-
-| Mục              | Chi tiết                                      |
-|------------------|-----------------------------------------------|
-| Framework        | Laravel 11 (PHP ≥ 8.2)                        |
-| Database         | MySQL 8.0 — `phone_store_v2`                  |
-| Frontend         | Tailwind CSS + AlpineJS + Vite                |
-| Packages         | spatie/laravel-permission, intervention/image-laravel, laravel/scout, barryvdh/laravel-dompdf |
-| Cấu trúc Routes  | `routes/web.php` + `routes/admin.php`         |
-
----
-
-## Tiến độ tổng quan
-
-**0 / 56 tasks hoàn thành (0%)**
+## 📊 Tổng Quan Tiến Độ
 
 ```
-[                                        ] 0%
+Giai đoạn 1 — Nền tảng & Setup          [✅ 100%]  ██████████
+Giai đoạn 2 — Admin CRUD                 [✅ 100%]  ██████████
+Giai đoạn 3 — Luồng mua hàng            [✅ 100%]  ██████████
+Giai đoạn 4 — Tính năng bổ sung         [✅ 100%]  ██████████
+Giai đoạn 5 — Admin nâng cao            [✅  95%]  █████████░
+Giai đoạn 6 — Hoàn thiện & Thanh toán   [✅  90%]  █████████░
+Giai đoạn 7 — Tối ưu (mới)              [⬜   0%]  ░░░░░░░░░░
+─────────────────────────────────────────────────────────────
+TỔNG                                     [~  84%]  ████████░░
 ```
 
-**Cập nhật:** Chưa bắt đầu dự án
+---
+
+## ✅ GIAI ĐOẠN 1 — NỀN TẢNG
+
+| # | Hạng mục | Trạng thái |
+|---|----------|:----------:|
+| 1.1 | Tạo project Laravel 12, cài packages (spatie, intervention, scout, dompdf, excel) | ✅ |
+| 1.2 | Cấu hình `.env` (DB, Mail, Storage, Payment) | ✅ |
+| 1.3 | Import `phone_store_v2_updated.sql` vào MySQL | ✅ |
+| 1.4 | 26 Eloquent Models + Relationships đầy đủ | ✅ |
+| 1.5 | Seeders: User (admin), Warehouse, Brand, Product | ✅ |
+| 1.6 | Auth: Register / Login / Logout / Forgot Password | ✅ |
+| 1.7 | AdminMiddleware + route admin.php với prefix `/admin` | ✅ |
+| 1.8 | Social Login (Socialite — Google) | ✅ |
 
 ---
 
-## Phase 1 — Nền tảng & Setup (8 tasks)
+## ✅ GIAI ĐOẠN 2 — ADMIN CRUD
 
-| STT | Task | Thành phần | Trạng thái | Ưu tiên |
-|-----|------|------------|------------|--------|
-| 1.1 | Cài đặt các packages cần thiết | Composer + npm | [ ] | ★★★ |
-| 1.2 | Cấu hình file `.env` (DB, Mail, Storage) | Config | [ ] | ★★★ |
-| 1.3 | Import database `phone_store_v2_updated.sql` | Database | [ ] | ★★★ |
-| 1.4 | Viết toàn bộ **Migrations** từ file SQL (24 bảng) | Migration | [ ] | ★★★ |
-| 1.5 | Tạo **Eloquent Models** + định nghĩa Relationships | Model | [ ] | ★★★ |
-| 1.6 | Viết **Database Seeders** (Brand, Category, Product, Variant, Inventory...) | Seeder | [ ] | ★★ |
-| 1.7 | Cấu hình **Tailwind CSS + AlpineJS + Vite** | Frontend | [ ] | ★★★ |
-| 1.8 | Chạy `php artisan storage:link` và kiểm tra môi trường | Config | [ ] | ★★ |
-
-**Trạng thái Phase:** ⬜ Chưa bắt đầu
+| # | Hạng mục | Trạng thái |
+|---|----------|:----------:|
+| 2.1 | Layout admin (sidebar, topbar, breadcrumb) | ✅ |
+| 2.2 | CRUD Thương hiệu (upload logo, slug) | ✅ |
+| 2.3 | CRUD Danh mục (phân cấp cha/con, upload ảnh) | ✅ |
+| 2.4 | CRUD Sản phẩm (soft delete, specifications) | ✅ |
+| 2.5 | CRUD Biến thể (SKU, giá, compare_price, attributes) | ✅ |
+| 2.6 | Upload ảnh variant (primary, sort_order, resize) | ✅ |
+| 2.7 | Quản lý Nhà cung cấp | ✅ |
+| 2.8 | Coupon: Danh sách, Tạo/Sửa/Xóa | ✅ |
 
 ---
 
-## Phase 2 — Auth & Phân quyền (5 tasks)
+## ✅ GIAI ĐOẠN 3 — LUỒNG MUA HÀNG (CUSTOMER)
 
-| STT | Task | Thành phần | Trạng thái | Ưu tiên |
-|-----|------|------------|------------|--------|
-| 2.1 | Register, Login, Logout | Auth | [ ] | ★★★ |
-| 2.2 | Forgot Password & Reset Password (Mailtrap) | Auth | [ ] | ★★ |
-| 2.3 | Tạo Middleware (Admin + Customer) | Middleware | [ ] | ★★★ |
-| 2.4 | Phân quyền route theo role (admin / customer) | Route | [ ] | ★★★ |
-| 2.5 | Thiết kế giao diện Login / Register | View | [ ] | ★★ |
-
-**Trạng thái Phase:** ⬜ Chưa bắt đầu
-
----
-
-## Phase 3 — Admin Panel (15 tasks)
-
-| STT | Task | Thành phần | Trạng thái | Ưu tiên |
-|-----|------|------------|------------|--------|
-| 3.1 | Dashboard (thống kê doanh thu, đơn hàng, tồn kho) | View | [ ] | ★★★ |
-| 3.2 | CRUD Brands (upload logo) | CRUD | [ ] | ★★★ |
-| 3.3 | CRUD Categories (hỗ trợ danh mục cha-con) | CRUD | [ ] | ★★★ |
-| 3.4 | CRUD Products (thông tin cơ bản) | CRUD | [ ] | ★★★ |
-| 3.5 | Quản lý Product Variants (SKU, giá, compare_price) | CRUD | [ ] | ★★★ |
-| 3.6 | Upload & quản lý ảnh cho Variant | Media | [ ] | ★★★ |
-| 3.7 | Quản lý Attributes & Attribute Values | CRUD | [ ] | ★★ |
-| 3.8 | Quản lý Warehouses & Inventory | CRUD | [ ] | ★★ |
-| 3.9 | Xem lịch sử Inventory Logs | View | [ ] | ★ |
-| 3.10 | CRUD Coupons | CRUD | [ ] | ★★ |
-| 3.11 | Quản lý Orders (xem danh sách, đổi trạng thái) | CRUD | [ ] | ★★★ |
-| 3.12 | Order Status Histories | Model | [ ] | ★ |
-| 3.13 | Quản lý Users (xem, khóa tài khoản) | CRUD | [ ] | ★★ |
-| 3.14 | Duyệt Reviews | CRUD | [ ] | ★ |
-| 3.15 | Quản lý Payments | View | [ ] | ★ |
-
-**Trạng thái Phase:** ⬜ Chưa bắt đầu
+| # | Hạng mục | Trạng thái |
+|---|----------|:----------:|
+| 3.1 | Layout customer (header mega menu, footer) | ✅ |
+| 3.2 | Trang chủ: Banner slider, sản phẩm nổi bật | ✅ |
+| 3.3 | Danh sách sản phẩm: filter, sort, phân trang | ✅ |
+| 3.4 | Chi tiết sản phẩm: Alpine.js chọn variant, gallery | ✅ |
+| 3.5 | CartService + Giỏ hàng (DB-based, merge guest) | ✅ |
+| 3.6 | Checkout: chọn địa chỉ, coupon, phương thức | ✅ |
+| 3.7 | OrderService: tạo đơn trong DB Transaction, trừ kho | ✅ |
 
 ---
 
-## Phase 4 — Customer: Catalog (7 tasks)
+## ✅ GIAI ĐOẠN 4 — TÍNH NĂNG BỔ SUNG
 
-| STT | Task | Thành phần | Trạng thái | Ưu tiên |
-|-----|------|------------|------------|--------|
-| 4.1 | Trang chủ (Banner, Sản phẩm nổi bật, Thương hiệu) | View | [ ] | ★★★ |
-| 4.2 | Danh sách sản phẩm (filter, sort, phân trang) | View | [ ] | ★★★ |
-| 4.3 | Trang chi tiết sản phẩm | View | [ ] | ★★★ |
-| 4.4 | Chọn variant (màu sắc, dung lượng) bằng AlpineJS | Frontend | [ ] | ★★★ |
-| 4.5 | Hiển thị Reviews & đánh giá trên trang sản phẩm | View | [ ] | ★★ |
-| 4.6 | Wishlist (thêm/xóa sản phẩm yêu thích) | Feature | [ ] | ★★ |
-| 4.7 | Trang Wishlist của user | View | [ ] | ★ |
-
-**Trạng thái Phase:** ⬜ Chưa bắt đầu
+| # | Hạng mục | Trạng thái |
+|---|----------|:----------:|
+| 4.1 | Wishlist (toggle AJAX, trang danh sách) | ✅ |
+| 4.2 | Review: form 5 sao, upload ảnh, validate đã mua | ✅ |
+| 4.3 | Notification: badge, danh sách, đánh dấu đã đọc | ✅ |
+| 4.4 | Profile: sửa thông tin, avatar, quản lý địa chỉ | ✅ |
 
 ---
 
-## Phase 5 — Customer: Mua hàng (11 tasks)
+## 🔄 GIAI ĐOẠN 5 — ADMIN NÂNG CAO
 
-| STT | Task | Thành phần | Trạng thái | Ưu tiên |
-|-----|------|------------|------------|--------|
-| 5.1 | CartService (thêm/xóa/sửa giỏ hàng - hỗ trợ guest) | Service | [ ] | ★★★ |
-| 5.2 | Merge giỏ hàng guest vào user khi đăng nhập | Service | [ ] | ★★★ |
-| 5.3 | Trang Giỏ hàng | View | [ ] | ★★★ |
-| 5.4 | CouponService (validate, tính giảm giá, giới hạn sử dụng) | Service | [ ] | ★★★ |
-| 5.5 | Trang Checkout (chọn địa chỉ, coupon, phương thức thanh toán) | View | [ ] | ★★★ |
-| 5.6 | OrderService (tạo đơn hàng, snapshot dữ liệu) | Service | [ ] | ★★★ |
-| 5.7 | InventoryService (trừ tồn kho + ghi log) | Service | [ ] | ★★★ |
-| 5.8 | Thanh toán COD + tạo Payment record | Payment | [ ] | ★★★ |
-| 5.9 | Chuẩn bị cấu trúc thanh toán VNPay / Momo | Payment | [ ] | ★★ |
-| 5.10 | Gửi email xác nhận đơn hàng | Mail | [ ] | ★★ |
-| 5.11 | Trang xác nhận đơn hàng thành công | View | [ ] | ★★ |
-
-**Trạng thái Phase:** ⬜ Chưa bắt đầu
+| # | Hạng mục | Trạng thái |
+|---|----------|:----------:|
+| 5.1 | Dashboard: doanh thu, đơn hàng, Chart.js | ✅ |
+| 5.2 | Kho hàng: xem tồn kho, nhập hàng, lịch sử log | ✅ |
+| 5.3 | Quản lý đơn hàng: lọc, cập nhật trạng thái, hủy | ✅ |
+| 5.4 | Duyệt đánh giá + Quản lý người dùng | ✅ |
+| 5.5 | Báo cáo & Export Excel | ✅ |
+| 5.6 | In hóa đơn PDF | ✅ |
+| 5.7 | Quản lý Banner | ✅ |
+| 5.8 | Cấu hình hệ thống (Settings) | ✅ |
 
 ---
 
-## Phase 6 — Customer: Tài khoản cá nhân (6 tasks)
+## 🔄 GIAI ĐOẠN 6 — HOÀN THIỆN
 
-| STT | Task | Thành phần | Trạng thái | Ưu tiên |
-|-----|------|------------|------------|--------|
-| 6.1 | Trang Profile (cập nhật thông tin, avatar) | View | [ ] | ★★ |
-| 6.2 | Quản lý địa chỉ giao hàng (CRUD + set default) | CRUD | [ ] | ★★★ |
-| 6.3 | Lịch sử đơn hàng (danh sách + chi tiết) | View | [ ] | ★★★ |
-| 6.4 | Hủy đơn hàng (CANCELLED + hoàn tồn kho) | Feature | [ ] | ★★ |
-| 6.5 | Viết Review sau khi mua hàng | Feature | [ ] | ★★ |
-| 6.6 | Trang Notifications | View | [ ] | ★ |
-
-**Trạng thái Phase:** ⬜ Chưa bắt đầu
-
----
-
-## Phase 7 — Services & Business Logic (5 tasks)
-
-| STT | Task | Thành phần | Trạng thái | Ưu tiên |
-|-----|------|------------|------------|--------|
-| 7.1 | Hoàn thiện CartService (edge cases) | Service | [ ] | ★★ |
-| 7.2 | Hoàn thiện OrderService + xử lý transaction/rollback | Service | [ ] | ★★★ |
-| 7.3 | Hoàn thiện CouponService + tracking coupon_usages | Service | [ ] | ★★ |
-| 7.4 | InventoryService - Nhập kho thủ công từ Admin | Service | [ ] | ★★ |
-| 7.5 | NotificationService (tự động tạo thông báo) | Service | [ ] | ★ |
-
-**Trạng thái Phase:** ⬜ Chưa bắt đầu
+| # | Hạng mục | Trạng thái | Branch thực hiện | Lệnh Commit đề xuất |
+|---|----------|:----------:|------------------|---------------------|
+| 6.1 | Mail: OrderConfirmation + OrderStatusChanged | ✅ | - | - |
+| 6.2 | Tích hợp VNPAY | ✅ | - | - |
+| 6.3 | Tích hợp MoMo | ✅ | - | - |
+| 6.4 | Eager loading chuẩn (không N+1) | ✅ | - | - |
+| 6.5 | AI Consult (AIController) | ✅ | - | - |
+| 6.6 | Policy: OrderPolicy (chỉ owner xem đơn) | ⬜ | `feature/order-policy` | `git commit -m "feat(auth): add OrderPolicy to restrict order viewing"` |
+| 6.7 | Rate limiting cho login / checkout | ⬜ | `feature/rate-limit` | `git commit -m "feat(security): add throttle middleware for login and checkout"` |
+| 6.8 | CouponService tách riêng + fix giới hạn dùng | ⬜ | `feature/coupon-service` | `git commit -m "feat(coupon): extract CouponService and add max_uses validation"` |
 
 ---
 
-## Phase 8 — Hoàn thiện & Deploy (7 tasks)
+## 🔄 GIAI ĐOẠN 7 — TỐI ƯU (Xem chi tiết: OPTIMIZATION.md)
 
-| STT | Task | Thành phần | Trạng thái | Ưu tiên |
-|-----|------|------------|------------|--------|
-| 8.1 | Export hóa đơn PDF (barryvdh/laravel-dompdf) | Feature | [ ] | ★★ |
-| 8.2 | Tối ưu giao diện Tailwind (responsive) | UI/UX | [ ] | ★★★ |
-| 8.3 | SEO (meta tags, slug tối ưu) | SEO | [ ] | ★★ |
-| 8.4 | Hoàn thiện Validation (Form Requests) | Validation | [ ] | ★★★ |
-| 8.5 | Viết một số Feature Test cơ bản | Testing | [ ] | ★ |
-| 8.6 | Tối ưu query (eager loading, tránh N+1) | Performance | [ ] | ★★ |
-| 8.7 | Production checklist & Deploy | Deploy | [ ] | ★ |
-
-**Trạng thái Phase:** ⬜ Chưa bắt đầu
-
----
-
-## Ghi chú & Quyết định kỹ thuật
-
-- Chưa có ghi chú nào.
+| # | Hạng mục | Trạng thái | Branch thực hiện | Lệnh Commit đề xuất |
+|---|----------|:----------:|------------------|---------------------|
+| 7.1 | Git Flow setup (develop, feature/*, hotfix/*) | ⬜ | `develop` | `git commit -m "chore: init develop branch and git flow"` |
+| 7.2 | GitHub Actions CI/CD | ⬜ | `ci/github-actions` | `git commit -m "ci: add GitHub Actions workflow for linting and testing"` |
+| 7.3 | Database performance indexes & Cache columns | ✅ | `perf/db-indexes` |
+| 7.4 | Redis cache cho product listing | ⬜ | `perf/redis-cache` | `git commit -m "perf(product): implement Redis caching for product lists"` |
+| 7.5 | Queue jobs: gửi email bất đồng bộ | ⬜ | `perf/queue-email` | `git commit -m "perf(mail): dispatch order emails to background queue"` |
+| 7.7 | Form Requests cho Customer routes | ⬜ | `refactor/form-request` | `git commit -m "refactor(customer): move validation to Form Requests"` |
+| 7.8 | Unit tests: OrderService, InventoryService... | ⬜ | `test/unit-services` | `git commit -m "test(services): add unit tests for core business logic"` |
+| 7.9 | Feature tests: Checkout, Cart | ⬜ | `test/feature-cart` | `git commit -m "test(checkout): add feature tests for cart and checkout flow"` |
 
 ---
 
-**Hướng dẫn sử dụng file này:**
+## 🐛 Bug / Vấn Đề Đang Theo Dõi
 
-- Khi hoàn thành một task → đổi `[ ]` thành `[x]`
-- Khi phase có ít nhất 1 task hoàn thành → đổi icon phase thành `🔄 Đang làm`
-- Khi hoàn thành toàn bộ task trong phase → đổi thành `✅ Hoàn thành`
-- Cập nhật lại **Tiến độ tổng quan** ở đầu file sau mỗi lần cập nhật.
+| # | Mô tả | Mức độ | Trạng thái | Branch fix | Lệnh Commit đề xuất |
+|---|-------|:------:|:----------:|------------|---------------------|
+| 1 | `checkCoupon()` thiếu kiểm tra giới hạn dùng | 🔴 High | ⬜ | `fix/coupon-limit` | `git commit -m "fix(coupon): enforce max_uses and dates in checkCoupon"` |
+| 2 | `InventoryService::restore()` dùng type `IMPORT` thay vì `RETURN` | 🟡 Med | ⬜ | `fix/inventory-return` | `git commit -m "fix(inventory): change restore log type from IMPORT to RETURN"` |
+| 3 | `OrderService::logStatus()` query `Order::find()` dư thừa | 🟢 Low | ⬜ | `fix/order-log-query` | `git commit -m "fix(order): remove redundant Order::find query in logStatus"` |
+| 4 | Mail gửi sync trong request (nên dùng Queue) | 🟡 Med | ⬜ | *(Gộp chung 7.5)* | - |
 
 ---
 
-Bạn muốn tôi bắt đầu luôn **Phase 1** ngay bây giờ không?  
-Hoặc bạn muốn chỉnh sửa thêm phần nào của file `tiendo.md` này trước khi bắt đầu làm?
+## 📝 Nhật Ký Cập Nhật
 
-Tôi sẵn sàng bắt đầu từ task 1.1 (cài packages) hoặc task 1.4 (viết migrations) tùy theo bạn muốn ưu tiên gì nhất.
+| Ngày | Nội dung |
+|------|----------|
+| 23/07/2026 | Đã hoàn thành tối ưu Database (Mục 7.3) |
+| 23/07/2026 | Bổ sung hướng dẫn Branch & Commit cho GĐ6, GĐ7 và Bug Fixes |
+| 23/07/2026 | Tái cấu trúc toàn bộ docs, thêm OPTIMIZATION.md, GIT_WORKFLOW.md |
+| 02/05/2026 | Hoàn thiện 3.3 (Cart) và 3.4 (Checkout/Order) |
+| 02/05/2026 | Hoàn thiện 3.1 (Layout) và 3.2 (Product listing/detail) |
+| DD/MM/2026 | Khởi tạo dự án |

@@ -10,7 +10,7 @@ class ProductVariant extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'product_id', 'sku', 'price', 'compare_price', 'cost_price', 'is_active',
+        'product_id', 'sku', 'price', 'compare_price', 'cost_price', 'is_active', 'total_stock',
     ];
 
     protected $casts = [
@@ -18,6 +18,7 @@ class ProductVariant extends Model
         'compare_price' => 'float',
         'cost_price'    => 'float',
         'is_active'     => 'boolean',
+        'total_stock'   => 'integer',
     ];
 
     public function product()    { return $this->belongsTo(Product::class); }
@@ -34,9 +35,28 @@ class ProductVariant extends Model
             ?? $this->images()->value('image_url');
     }
 
+    /**
+     * Dùng cột cache total_stock trong DB thay vì JOIN inventory.
+     * Cột này được sync bởi InventoryService sau mỗi thao tác.
+     */
     public function getTotalStockAttribute(): int
     {
+        // Nếu cột cache có trong attributes (eager loaded), dùng luôn
+        if (array_key_exists('total_stock', $this->attributes)) {
+            return (int) $this->attributes['total_stock'];
+        }
+        // Fallback: query trực tiếp (cho các trường hợp chưa có cột)
         return $this->warehouses()->sum('inventory.quantity');
+    }
+
+    /**
+     * Sync lại total_stock từ bảng inventory.
+     * Gọi bởi InventoryService sau mỗi import/deduct/restore.
+     */
+    public function syncStock(): void
+    {
+        $total = $this->inventory()->sum('quantity');
+        $this->updateQuietly(['total_stock' => $total]);
     }
 
     public function isInStock(): bool { return $this->total_stock > 0; }

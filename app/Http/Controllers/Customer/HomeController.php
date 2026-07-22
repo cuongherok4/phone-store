@@ -23,8 +23,6 @@ class HomeController extends Controller
                       ->with(['images' => fn ($imgQ) => $imgQ->orderBy('sort_order')]);
                 },
             ])
-            ->withAvg(['reviews as avg_rating' => fn ($q) => $q->where('is_approved', true)], 'rating')
-            ->withCount(['reviews as review_count' => fn ($q) => $q->where('is_approved', true)])
             ->orderBy('created_at', 'desc')
             ->limit(8)
             ->get();
@@ -41,8 +39,6 @@ class HomeController extends Controller
                       ->with(['images' => fn ($imgQ) => $imgQ->orderBy('sort_order')]);
                 },
             ])
-            ->withAvg(['reviews as avg_rating' => fn ($q) => $q->where('is_approved', true)], 'rating')
-            ->withCount(['reviews as review_count' => fn ($q) => $q->where('is_approved', true)])
             ->inRandomOrder()
             ->limit(8)
             ->get();

@@ -54,9 +54,16 @@ class OrderService
                     'note'             => $data['note'] ?? null,
                 ]);
 
+                $variantAttrs = $variant->variantAttributes
+                    ->map(fn($va) => $va->attributeValue->value ?? '')
+                    ->filter()
+                    ->implode(' / ');
+
                 OrderItem::create([
                     'order_id'   => $order->id,
                     'variant_id' => $variant->id,
+                    'sku'        => $variant->sku,
+                    'name'       => $variant->product->name . ($variantAttrs ? ' (' . $variantAttrs . ')' : ''),
                     'quantity'   => $qty,
                     'price'      => $variant->price,
                     'subtotal'   => $subtotal,
@@ -64,13 +71,13 @@ class OrderService
 
                 // Ghi log lịch sử
                 OrderStatusHistory::create([
-                    'order_id' => $order->id,
-                    'status'   => 'PENDING',
-                    'note'     => 'Đơn hàng được tạo (Mua ngay)',
+                    'order_id'   => $order->id,
+                    'new_status' => 'PENDING',
+                    'note'       => 'Đơn hàng được tạo (Mua ngay)',
                 ]);
 
                 if (!$isOnlinePayment) {
-                    $this->inventoryService->reduceStock($variant->id, $qty, "Đặt hàng trực tiếp #{$order->id}");
+                    $this->inventoryService->deduct($variant->id, $qty, $order->id);
                 }
 
                 // Xoá sản phẩm này khỏi giỏ hàng nếu có
@@ -128,6 +135,7 @@ class OrderService
                     'name'       => $cartItem->variant->product->name . ($variantAttrs ? ' (' . $variantAttrs . ')' : ''),
                     'price'      => $cartItem->variant->price,
                     'quantity'   => $cartItem->quantity,
+                    'subtotal'   => $cartItem->variant->price * $cartItem->quantity,
                 ]);
 
                 // Chỉ trừ kho ngay với COD — Online payment chờ callback

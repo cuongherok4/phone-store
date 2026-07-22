@@ -35,6 +35,9 @@ class ReviewController extends Controller
         $review = Review::findOrFail($id);
         $review->update(['is_approved' => true]);
 
+        // Cập nhật lại cache rating của product
+        $review->product?->syncReviewStats();
+
         return back()->with('success', 'Đã duyệt đánh giá.');
     }
 
@@ -44,7 +47,11 @@ class ReviewController extends Controller
     public function destroy($id)
     {
         $review = Review::findOrFail($id);
+        $product = $review->product;
         $review->delete();
+
+        // Cập nhật lại cache rating của product
+        $product?->syncReviewStats();
 
         return back()->with('success', 'Đã xoá đánh giá.');
     }

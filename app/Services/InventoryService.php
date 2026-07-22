@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Inventory;
 use App\Models\InventoryLog;
+use App\Models\ProductVariant;
 use Illuminate\Support\Facades\DB;
 use Exception;
 
@@ -57,7 +58,7 @@ class InventoryService
                     'change_type' => 'EXPORT',
                     'quantity_change' => -$qtyToDeductFromThisWarehouse,
                     'quantity_before' => $quantityBefore,
-                    'quantity_after' => $inventory->quantity,
+                    'quantity_after' => $newQuantity,
                     'reference_type' => 'order',
                     'reference_id' => $orderId,
                     'note' => "Xuất kho cho đơn hàng #{$orderId}",
@@ -66,6 +67,9 @@ class InventoryService
 
                 $remainingQtyToDeduct -= $qtyToDeductFromThisWarehouse;
             }
+
+            // Sync lại cột total_stock ở ProductVariant
+            ProductVariant::find($variantId)?->syncStock();
         });
     }
 
@@ -110,6 +114,9 @@ class InventoryService
                 'created_by' => $adminId,
                 'import_price' => $importPrice,
             ]);
+
+            // Sync lại cột total_stock ở ProductVariant
+            ProductVariant::find($variantId)?->syncStock();
         });
     }
 
@@ -152,6 +159,9 @@ class InventoryService
                 'note' => $note,
                 'created_by' => $adminId,
             ]);
+
+            // Sync lại cột total_stock ở ProductVariant
+            ProductVariant::find($variantId)?->syncStock();
         });
     }
 
@@ -196,6 +206,9 @@ class InventoryService
                 'note' => "Hoàn kho do đơn hàng #{$orderId} bị huỷ",
                 'created_by' => auth()->id() ?? 1
             ]);
+
+            // Sync lại cột total_stock ở ProductVariant
+            ProductVariant::find($variantId)?->syncStock();
         });
     }
 }
