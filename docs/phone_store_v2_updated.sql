@@ -199,7 +199,7 @@ CREATE TABLE inventory_logs (
     variant_id      BIGINT,
     warehouse_id    BIGINT,
     supplier_id     BIGINT UNSIGNED NULL, -- ← MỚI
-    change_type     ENUM('IMPORT','EXPORT','ADJUST') NOT NULL,
+    change_type     ENUM('IMPORT','EXPORT','ADJUST','RETURN') NOT NULL,
     quantity_change INT NOT NULL,
     import_price    DECIMAL(15,2) NULL, -- ← MỚI
     quantity_before INT COMMENT 'tồn kho trước khi thay đổi',

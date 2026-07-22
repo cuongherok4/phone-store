@@ -24,7 +24,7 @@
 | **GĐ 2** | Quản trị sản phẩm và danh mục | 🟢 Done | **100%** |
 | **GĐ 3** | Luồng mua hàng cho khách | 🟢 Done | **100%** |
 | **GĐ 4** | Tài khoản, đánh giá, yêu thích, thông báo | 🟢 Done | **100%** |
-| **GĐ 5** | Quản trị vận hành shop | 🟢 Done | **90%** |
+| **GĐ 5** | Quản trị vận hành shop | 🟢 Done | **95%** |
 | **GĐ 6** | Thanh toán, hóa đơn, báo cáo | 🟡 Doing | **85%** |
 | **GĐ 7** | Hiệu năng và tối ưu truy vấn | 🟡 Doing | **60%** |
 | **GĐ 8** | Bảo mật và phân quyền | 🟡 Doing | **55%** |
@@ -179,7 +179,7 @@ git commit -m "docs(deploy): add production environment checklist"
 |---|---|:---:|---|
 | 5.1 | Dashboard admin | 🟢 | Doanh thu, đơn hàng, tồn kho, biểu đồ |
 | 5.2 | Quản lý đơn hàng | 🟢 | Lọc, xem chi tiết, cập nhật trạng thái |
-| 5.3 | Hủy đơn và hoàn kho | 🟡 | Cần đổi log hoàn kho sang type riêng như `RETURN` |
+| 5.3 | Hủy đơn và hoàn kho | 🟢 | Admin hủy đơn qua OrderService, hoàn kho nếu đã trừ tồn, log kho dùng `RETURN` |
 | 5.4 | Quản lý kho nhiều warehouse | 🟢 | Nhập/xuất/điều chỉnh tồn kho |
 | 5.5 | Lịch sử tồn kho | 🟢 | Ghi log thay đổi số lượng |
 | 5.6 | Quản lý nhà cung cấp | 🟢 | Danh sách, thêm/sửa/xóa |
@@ -361,6 +361,7 @@ Xây dựng hệ thống thương mại điện tử bán điện thoại bằng
 | 23/07/2026 | Viết lại tài liệu tiến độ theo hướng hệ thống thật có thể deploy/bàn giao |
 | 23/07/2026 | Hoàn thành mục `3.9`: kiểm tra tồn kho trước thanh toán và chống oversell khi checkout đồng thời |
 | 23/07/2026 | Hoàn thành mục `4.6`: kiểm tra quyền sở hữu khi khách hủy đơn hàng |
+| 23/07/2026 | Hoàn thành mục `5.3`: admin hủy đơn dùng service chung và hoàn kho bằng log `RETURN` |
 
 ---
 

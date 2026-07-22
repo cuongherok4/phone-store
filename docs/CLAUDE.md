@@ -103,7 +103,7 @@ php artisan serve
 | 10 | `variant_images` | Ảnh của từng variant | `is_primary`, `sort_order` |
 | 11 | `warehouses` | Kho hàng | Có thể nhiều kho |
 | 12 | `inventory` | Tồn kho theo variant × warehouse | CHECK `quantity >= 0` |
-| 13 | `inventory_logs` | Lịch sử nhập/xuất kho | `change_type`: IMPORT/EXPORT/ADJUST |
+| 13 | `inventory_logs` | Lịch sử nhập/xuất/hoàn kho | `change_type`: IMPORT/EXPORT/ADJUST/RETURN |
 | 14 | `coupons` | Mã giảm giá | `percent` hoặc `fixed`, có `max_uses_per_user` |
 | 15 | `coupon_usages` | Track ai đã dùng coupon nào | FK đến orders (thêm sau bằng ALTER) |
 | 16 | `orders` | Đơn hàng | Snapshot địa chỉ, có `subtotal/discount/shipping/total` |
@@ -125,7 +125,7 @@ orders.status             → 'PENDING' | 'CONFIRMED' | 'SHIPPING' | 'COMPLETED'
 orders.payment_status     → 'UNPAID' | 'PAID' | 'REFUNDED'
 payments.method           → 'COD' | 'MOMO' | 'VNPAY' | 'ZALOPAY' | 'BANKING' | 'CREDIT_CARD'
 payments.status           → 'PENDING' | 'SUCCESS' | 'FAILED' | 'REFUNDED'
-inventory_logs.change_type→ 'IMPORT' | 'EXPORT' | 'ADJUST'
+inventory_logs.change_type→ 'IMPORT' | 'EXPORT' | 'ADJUST' | 'RETURN'
 coupons.discount_type     → 'percent' | 'fixed'
 ```
 
@@ -506,7 +506,7 @@ deduct(int $variantId, int $qty, int $orderId): void
   → Trừ kho, tạo inventory_log (EXPORT, reference_type='order')
 
 import(int $variantId, int $warehouseId, int $qty, string $note, int $adminId): void
-  → Cộng kho, tạo inventory_log (IMPORT)
+  → Cộng kho, tạo inventory_log (RETURN)
 
 adjust(int $variantId, int $warehouseId, int $newQty, string $note, int $adminId): void
   → Set quantity mới, tạo inventory_log (ADJUST)

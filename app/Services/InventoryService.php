@@ -258,7 +258,7 @@ class InventoryService
             InventoryLog::create([
                 'variant_id' => $variantId,
                 'warehouse_id' => $warehouseId,
-                'change_type' => 'IMPORT',
+                'change_type' => 'RETURN',
                 'quantity_change' => $qty,
                 'quantity_before' => $quantityBefore,
                 'quantity_after' => $newQuantity,

@@ -29,7 +29,7 @@
 | # | File | Vấn đề | Fix |
 |---|------|---------|-----|
 | 1 | `CheckoutController@checkCoupon` | Logic kiểm tra giới hạn coupon bỏ trống (`// ...`) — dễ abuse | Implement đầy đủ hoặc tách sang `CouponService` |
-| 2 | `InventoryService::restore()` | `change_type = 'IMPORT'` khi hoàn kho — sai semantic | Đổi thành `'RETURN'` |
+| 2 | `InventoryService::restore()` | `change_type = 'IMPORT'` khi hoàn kho — sai semantic | ✅ Đã đổi sang `'RETURN'` |
 | 3 | Mail gửi sync | Request fail nếu SMTP chậm/lỗi | Chuyển sang `Queue::dispatch()` |
 
 ### 🟠 HIGH — Xử lý trong tuần
@@ -87,7 +87,7 @@ git push origin feature/ten-tinh-nang
 - [ ] `CouponService::validate()` — kiểm tra is_active, dates, max_uses, user đã dùng chưa
 - [ ] `CouponService::apply()` — tính discount theo type (percent/fixed)
 - [ ] `CouponService::recordUsage()` — ghi `coupon_usages` sau khi order tạo thành công
-- [ ] `InventoryService::restore()` — đổi `IMPORT` → `RETURN`
+- [x] `InventoryService::restore()` — đổi `IMPORT` → `RETURN`
 - [ ] `OrderService::logStatus()` — bỏ `Order::find()` dư thừa
 - [ ] Rate limiting: `throttle:10,1` cho login, `throttle:5,1` cho checkout
 
@@ -244,7 +244,7 @@ Mỗi task coi là **XONG** khi:
 
 ## 🎯 Quick Wins (< 30 phút mỗi cái — Làm ngay)
 
-1. **`InventoryService::restore()`** — Đổi `'IMPORT'` → `'RETURN'` (1 dòng)
+1. **`InventoryService::restore()`** — Đã đổi `'IMPORT'` → `'RETURN'`
 2. **`OrderService::logStatus()`** — Bỏ `Order::find()` thừa, dùng `$order->status`
 3. **`.gitignore`** — Thêm `/scratch/` và `/img/`
 4. **`CHANGELOG.md`** — Tạo file theo Keep a Changelog
