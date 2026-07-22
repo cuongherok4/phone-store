@@ -23,7 +23,7 @@
 | **GĐ 1** | Nền tảng hệ thống | 🟢 Done | **100%** |
 | **GĐ 2** | Quản trị sản phẩm và danh mục | 🟢 Done | **100%** |
 | **GĐ 3** | Luồng mua hàng cho khách | 🟢 Done | **100%** |
-| **GĐ 4** | Tài khoản, đánh giá, yêu thích, thông báo | 🟢 Done | **90%** |
+| **GĐ 4** | Tài khoản, đánh giá, yêu thích, thông báo | 🟢 Done | **100%** |
 | **GĐ 5** | Quản trị vận hành shop | 🟢 Done | **90%** |
 | **GĐ 6** | Thanh toán, hóa đơn, báo cáo | 🟡 Doing | **85%** |
 | **GĐ 7** | Hiệu năng và tối ưu truy vấn | 🟡 Doing | **60%** |
@@ -166,7 +166,7 @@ git commit -m "docs(deploy): add production environment checklist"
 | 4.3 | Hồ sơ người dùng | 🟢 | Cập nhật thông tin, avatar |
 | 4.4 | Sổ địa chỉ | 🟢 | Thêm/xóa/đặt mặc định |
 | 4.5 | Lịch sử đơn hàng | 🟢 | Khách xem đơn đã mua |
-| 4.6 | Hủy đơn | 🟡 | Cần kiểm tra quyền sở hữu đơn |
+| 4.6 | Hủy đơn | 🟢 | Khách chỉ hủy được đơn của chính mình, service kiểm tra owner trước khi cập nhật |
 | 4.7 | Wishlist | 🟢 | Toggle AJAX, danh sách yêu thích |
 | 4.8 | Đánh giá sản phẩm | 🟢 | Chỉ người đã mua được đánh giá |
 | 4.9 | Thông báo | 🟢 | Danh sách, đánh dấu đã đọc |
@@ -360,6 +360,7 @@ Xây dựng hệ thống thương mại điện tử bán điện thoại bằng
 | 23/07/2026 | Sửa lỗi lưu `subtotal` order item và trừ kho luồng mua ngay |
 | 23/07/2026 | Viết lại tài liệu tiến độ theo hướng hệ thống thật có thể deploy/bàn giao |
 | 23/07/2026 | Hoàn thành mục `3.9`: kiểm tra tồn kho trước thanh toán và chống oversell khi checkout đồng thời |
+| 23/07/2026 | Hoàn thành mục `4.6`: kiểm tra quyền sở hữu khi khách hủy đơn hàng |
 
 ---
 

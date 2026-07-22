@@ -207,9 +207,19 @@ class OrderService
     /**
      * Huỷ đơn hàng.
      */
-    public function cancelOrder(int $orderId, string $reason, $userId = null)
+    public function cancelOrder(int $orderId, string $reason, $userId = null, ?int $ownerUserId = null)
     {
-        $order = Order::findOrFail($orderId);
+        $query = Order::query();
+
+        if ($ownerUserId !== null) {
+            $query->where('user_id', $ownerUserId);
+        }
+
+        $order = $query->with('items')->find($orderId);
+
+        if (! $order) {
+            throw new Exception('Không tìm thấy đơn hàng hoặc bạn không có quyền huỷ đơn hàng này.');
+        }
 
         if (!$order->canBeCancelled()) {
             throw new Exception("Đơn hàng này không thể huỷ ở trạng thái hiện tại.");
