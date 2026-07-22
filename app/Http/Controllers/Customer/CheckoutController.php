@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Services\CartService;
+use App\Services\InventoryService;
 use App\Services\OrderService;
 use App\Models\UserAddress;
 use App\Models\Coupon;
@@ -14,12 +15,14 @@ class CheckoutController extends Controller
     protected $cartService;
     protected $orderService;
     protected $paymentService;
+    protected $inventoryService;
 
-    public function __construct(CartService $cartService, OrderService $orderService, \App\Services\PaymentService $paymentService)
+    public function __construct(CartService $cartService, OrderService $orderService, \App\Services\PaymentService $paymentService, InventoryService $inventoryService)
     {
         $this->cartService = $cartService;
         $this->orderService = $orderService;
         $this->paymentService = $paymentService;
+        $this->inventoryService = $inventoryService;
     }
 
     /**
@@ -31,8 +34,20 @@ class CheckoutController extends Controller
 
         // Xử lý luồng Mua ngay (Direct Buy)
         if ($request->has('variant_id')) {
+            $request->validate([
+                'variant_id' => 'required|exists:product_variants,id',
+                'quantity'   => 'nullable|integer|min:1|max:99',
+            ]);
+
             $variant = \App\Models\ProductVariant::with(['product', 'images', 'variantAttributes.attributeValue'])->findOrFail($request->variant_id);
-            $qty = $request->get('quantity', 1);
+            $qty = (int) $request->get('quantity', 1);
+            $stock = $this->inventoryService->getStock($variant->id);
+
+            if ($stock < $qty) {
+                return redirect()
+                    ->route('customer.products.show', $variant->product->slug)
+                    ->with('error', "Sản phẩm \"{$variant->product->name}\" hiện chỉ còn {$stock} sản phẩm.");
+            }
             
             // Tạo một Cart "ảo" cho view
             $mockItem = new \App\Models\CartItem([
@@ -86,6 +101,8 @@ class CheckoutController extends Controller
             'note'             => 'nullable|string|max:1000',
             'address_id'       => 'nullable|exists:user_addresses,id',
             'payment_method'   => 'required|in:COD,VNPAY',
+            'variant_id'        => 'nullable|exists:product_variants,id',
+            'quantity'          => 'nullable|integer|min:1|max:99',
         ]);
 
         try {

@@ -19,6 +19,63 @@ class InventoryService
     }
 
     /**
+     * Kiểm tra tồn kho cho nhiều variant trong cùng một transaction.
+     * Khi $lockForUpdate = true, các dòng inventory liên quan sẽ bị khóa
+     * để tránh hai checkout đồng thời cùng nhìn thấy một lượng tồn kho cũ.
+     */
+    public function assertManyAvailable(array $items, bool $lockForUpdate = false): void
+    {
+        $requiredItems = collect($items)
+            ->map(fn ($item) => [
+                'variant_id' => (int) $item['variant_id'],
+                'quantity'   => (int) $item['quantity'],
+                'name'       => $item['name'] ?? 'Sản phẩm',
+            ])
+            ->filter(fn ($item) => $item['variant_id'] > 0 && $item['quantity'] > 0)
+            ->groupBy('variant_id')
+            ->map(fn ($group) => [
+                'variant_id' => $group->first()['variant_id'],
+                'quantity'   => $group->sum('quantity'),
+                'name'       => $group->first()['name'],
+            ])
+            ->values();
+
+        if ($requiredItems->isEmpty()) {
+            throw new Exception('Không có sản phẩm hợp lệ để kiểm tra tồn kho.');
+        }
+
+        $variantIds = $requiredItems->pluck('variant_id')->all();
+        $query = Inventory::whereIn('variant_id', $variantIds)
+            ->orderBy('variant_id')
+            ->orderBy('warehouse_id');
+
+        if ($lockForUpdate) {
+            $query->lockForUpdate();
+        }
+
+        $availableByVariant = $query->get()
+            ->groupBy('variant_id')
+            ->map(fn ($rows) => (int) $rows->sum('quantity'));
+
+        foreach ($requiredItems as $item) {
+            $available = $availableByVariant->get($item['variant_id'], 0);
+
+            if ($available < $item['quantity']) {
+                throw new Exception("Sản phẩm \"{$item['name']}\" hiện chỉ còn {$available} sản phẩm.");
+            }
+        }
+    }
+
+    public function assertAvailable(int $variantId, int $qty, string $name = 'Sản phẩm', bool $lockForUpdate = false): void
+    {
+        $this->assertManyAvailable([[
+            'variant_id' => $variantId,
+            'quantity'   => $qty,
+            'name'       => $name,
+        ]], $lockForUpdate);
+    }
+
+    /**
      * Trừ tồn kho khi có đơn hàng (ưu tiên kho có nhiều hàng nhất)
      */
     public function deduct(int $variantId, int $qty, int $orderId): void
@@ -26,17 +83,17 @@ class InventoryService
         if ($qty <= 0) return;
 
         DB::transaction(function () use ($variantId, $qty, $orderId) {
-            $totalStock = $this->getStock($variantId);
-            if ($totalStock < $qty) {
-                throw new Exception("Không đủ số lượng tồn kho để trừ.");
-            }
-
-            // Lấy các kho đang có hàng của variant này, ưu tiên kho nhiều hàng nhất
+            // Khóa các dòng kho trước khi tính tổng để tránh oversell khi nhiều checkout đồng thời.
             $inventories = Inventory::where('variant_id', $variantId)
                 ->where('quantity', '>', 0)
                 ->orderBy('quantity', 'desc')
                 ->lockForUpdate()
                 ->get();
+
+            $totalStock = $inventories->sum('quantity');
+            if ($totalStock < $qty) {
+                throw new Exception("Không đủ số lượng tồn kho để trừ.");
+            }
 
             $remainingQtyToDeduct = $qty;
 
@@ -66,6 +123,10 @@ class InventoryService
                 ]);
 
                 $remainingQtyToDeduct -= $qtyToDeductFromThisWarehouse;
+            }
+
+            if ($remainingQtyToDeduct > 0) {
+                throw new Exception("Không đủ số lượng tồn kho để trừ.");
             }
 
             // Sync lại cột total_stock ở ProductVariant
