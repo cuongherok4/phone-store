@@ -22,6 +22,7 @@
         <form action="{{ route('checkout.process') }}" method="POST" id="checkout-form">
             @csrf
             <input type="hidden" name="address_id" x-model="selectedAddressId">
+            <input type="hidden" name="coupon_code" x-model="couponCode">
             @if(request('variant_id'))
                 <input type="hidden" name="variant_id" value="{{ request('variant_id') }}">
                 <input type="hidden" name="quantity" value="{{ request('quantity', 1) }}">
@@ -351,6 +352,8 @@
             couponSuccess: false,
             discount: 0,
             subtotal: {{ $cart->total }},
+            variantId: '{{ request('variant_id') }}',
+            quantity: {{ (int) request('quantity', 1) }},
             
             async init() {
                 await this.fetchProvinces();
@@ -467,7 +470,11 @@
                             'X-CSRF-TOKEN': '{{ csrf_token() }}',
                             'Accept': 'application/json'
                         },
-                        body: JSON.stringify({ code: this.couponCode })
+                        body: JSON.stringify({
+                            code: this.couponCode,
+                            variant_id: this.variantId || null,
+                            quantity: this.quantity
+                        })
                     });
                     
                     const data = await response.json();
@@ -475,19 +482,20 @@
                     this.couponSuccess = data.success;
                     
                     if (data.success) {
-                        const coupon = data.coupon;
-                        if (coupon.discount_type === 'PERCENT') {
-                            this.discount = (this.subtotal * coupon.discount_value) / 100;
-                            // Check max discount if needed
-                        } else {
-                            this.discount = coupon.discount_value;
-                        }
+                        this.discount = data.discount_amount;
                     } else {
                         this.discount = 0;
+                        this.couponCode = '';
                     }
                 } catch (error) {
-                    this.couponMessage = 'Lỗi hệ thống, vui lòng thử lại.';
+                    this.discount = 0;
                     this.couponSuccess = false;
+                    this.couponCode = '';
+                    if (error.response) {
+                        this.couponMessage = 'Mã giảm giá không hợp lệ.';
+                    } else {
+                        this.couponMessage = 'Lỗi hệ thống, vui lòng thử lại.';
+                    }
                 }
             },
 

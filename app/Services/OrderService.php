@@ -12,11 +12,13 @@ class OrderService
 {
     protected $cartService;
     protected $inventoryService;
+    protected $couponService;
 
-    public function __construct(CartService $cartService, InventoryService $inventoryService)
+    public function __construct(CartService $cartService, InventoryService $inventoryService, CouponService $couponService)
     {
         $this->cartService = $cartService;
         $this->inventoryService = $inventoryService;
+        $this->couponService = $couponService;
     }
 
     public function createFromCart(array $data)
@@ -32,6 +34,8 @@ class OrderService
             $subtotal = $variant->price * $qty;
 
             return DB::transaction(function () use ($variant, $qty, $data, $isOnlinePayment, $subtotal) {
+                $couponData = $this->resolveCoupon($data, $subtotal);
+
                 $this->inventoryService->assertAvailable(
                     $variant->id,
                     $qty,
@@ -42,11 +46,11 @@ class OrderService
                 $order = Order::create([
                     'user_id'          => auth()->id(),
                     'address_id'       => $data['address_id'] ?? null,
-                    'coupon_id'        => $data['coupon_id'] ?? null,
+                    'coupon_id'        => $couponData['coupon']?->id,
                     'subtotal'         => $subtotal,
-                    'discount_amount'  => $data['discount_amount'] ?? 0,
+                    'discount_amount'  => $couponData['discount_amount'],
                     'shipping_fee'     => $data['shipping_fee'] ?? 0,
-                    'total_price'      => $subtotal + ($data['shipping_fee'] ?? 0) - ($data['discount_amount'] ?? 0),
+                    'total_price'      => $subtotal + ($data['shipping_fee'] ?? 0) - $couponData['discount_amount'],
                     'status'           => 'PENDING',
                     'payment_status'   => 'UNPAID',
                     'payment_method'   => $data['payment_method'] ?? 'COD',
@@ -82,6 +86,10 @@ class OrderService
                     $this->inventoryService->deduct($variant->id, $qty, $order->id);
                 }
 
+                if ($couponData['coupon']) {
+                    $this->couponService->recordUsage($couponData['coupon'], $order, auth()->id());
+                }
+
                 // Xoá sản phẩm này khỏi giỏ hàng nếu có
                 $cart = $this->cartService->getOrCreateCart();
                 $cart->items()->where('variant_id', $variant->id)->delete();
@@ -99,6 +107,9 @@ class OrderService
         }
 
         return DB::transaction(function () use ($cart, $selectedItems, $data, $isOnlinePayment) {
+            $subtotal = $cart->total;
+            $couponData = $this->resolveCoupon($data, $subtotal);
+
             $selectedItems->loadMissing([
                 'variant.product',
                 'variant.variantAttributes.attributeValue',
@@ -117,11 +128,11 @@ class OrderService
             $order = Order::create([
                 'user_id'          => auth()->id(),
                 'address_id'       => $data['address_id'] ?? null,
-                'coupon_id'        => $data['coupon_id'] ?? null,
-                'subtotal'         => $cart->total,
-                'discount_amount'  => $data['discount_amount'] ?? 0,
+                'coupon_id'        => $couponData['coupon']?->id,
+                'subtotal'         => $subtotal,
+                'discount_amount'  => $couponData['discount_amount'],
                 'shipping_fee'     => $data['shipping_fee'] ?? 0,
-                'total_price'      => $cart->total + ($data['shipping_fee'] ?? 0) - ($data['discount_amount'] ?? 0),
+                'total_price'      => $subtotal + ($data['shipping_fee'] ?? 0) - $couponData['discount_amount'],
                 'status'           => 'PENDING',
                 'payment_status'   => 'UNPAID',
                 'payment_method'   => $data['payment_method'] ?? 'COD',
@@ -152,6 +163,10 @@ class OrderService
                 if (!$isOnlinePayment) {
                     $this->inventoryService->deduct($cartItem->variant_id, $cartItem->quantity, $order->id);
                 }
+            }
+
+            if ($couponData['coupon']) {
+                $this->couponService->recordUsage($couponData['coupon'], $order, auth()->id());
             }
 
             // 3. Ghi lại lịch sử trạng thái
@@ -290,5 +305,16 @@ class OrderService
             'changed_by' => $userId ?? auth()->id(),
             'created_at' => now(),
         ]);
+    }
+
+    private function resolveCoupon(array $data, float $subtotal): array
+    {
+        $code = $data['coupon_code'] ?? null;
+
+        if (! $code) {
+            return ['coupon' => null, 'discount_amount' => 0.0];
+        }
+
+        return $this->couponService->validate($code, auth()->id(), $subtotal, true);
     }
 }

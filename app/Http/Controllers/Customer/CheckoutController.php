@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Services\CartService;
+use App\Services\CouponService;
 use App\Services\InventoryService;
 use App\Services\OrderService;
 use App\Models\UserAddress;
@@ -16,13 +17,15 @@ class CheckoutController extends Controller
     protected $orderService;
     protected $paymentService;
     protected $inventoryService;
+    protected $couponService;
 
-    public function __construct(CartService $cartService, OrderService $orderService, \App\Services\PaymentService $paymentService, InventoryService $inventoryService)
+    public function __construct(CartService $cartService, OrderService $orderService, \App\Services\PaymentService $paymentService, InventoryService $inventoryService, CouponService $couponService)
     {
         $this->cartService = $cartService;
         $this->orderService = $orderService;
         $this->paymentService = $paymentService;
         $this->inventoryService = $inventoryService;
+        $this->couponService = $couponService;
     }
 
     /**
@@ -103,13 +106,11 @@ class CheckoutController extends Controller
             'payment_method'   => 'required|in:COD,VNPAY',
             'variant_id'        => 'nullable|exists:product_variants,id',
             'quantity'          => 'nullable|integer|min:1|max:99',
+            'coupon_code'       => 'nullable|string|max:50',
         ]);
 
         try {
             $data = $request->all();
-            
-            // Logic tính toán discount từ coupon sẽ được thêm ở 3.4 sau
-            $data['discount_amount'] = 0;
             $data['shipping_fee'] = 0; // Tạm thời miễn phí vận chuyển
 
             $order = $this->orderService->createFromCart($data);
@@ -234,24 +235,42 @@ class CheckoutController extends Controller
      */
     public function checkCoupon(Request $request)
     {
-        $code = $request->input('code');
-        $coupon = Coupon::where('code', $code)
-            ->where('is_active', true)
-            ->where('start_at', '<=', now())
-            ->where('expires_at', '>=', now())
-            ->first();
+        $validated = $request->validate([
+            'code' => 'required|string|max:50',
+            'variant_id' => 'nullable|exists:product_variants,id',
+            'quantity' => 'nullable|integer|min:1|max:99',
+        ]);
 
-        if (!$coupon) {
-            return response()->json(['success' => false, 'message' => 'Mã giảm giá không tồn tại hoặc đã hết hạn.']);
+        try {
+            $subtotal = $this->getCheckoutSubtotal($request);
+            $result = $this->couponService->validate($validated['code'], auth()->id(), $subtotal);
+
+            return response()->json([
+                'success' => true,
+                'coupon'  => [
+                    'id' => $result['coupon']->id,
+                    'code' => $result['coupon']->code,
+                    'discount_type' => $result['coupon']->discount_type,
+                    'discount_value' => $result['coupon']->discount_value,
+                ],
+                'discount_amount' => $result['discount_amount'],
+                'message' => 'Áp dụng mã giảm giá thành công!',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    private function getCheckoutSubtotal(Request $request): float
+    {
+        if ($request->filled('variant_id')) {
+            $variant = \App\Models\ProductVariant::findOrFail($request->input('variant_id'));
+            return $variant->price * (int) $request->input('quantity', 1);
         }
 
-        // Kiểm tra giới hạn sử dụng (nếu có)
-        // ...
-
-        return response()->json([
-            'success' => true,
-            'coupon'  => $coupon,
-            'message' => 'Áp dụng mã giảm giá thành công!'
-        ]);
+        return $this->cartService->getCartData()->total;
     }
 }

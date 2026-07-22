@@ -28,7 +28,7 @@
 
 | # | File | Vấn đề | Fix |
 |---|------|---------|-----|
-| 1 | `CheckoutController@checkCoupon` | Logic kiểm tra giới hạn coupon bỏ trống (`// ...`) — dễ abuse | Implement đầy đủ hoặc tách sang `CouponService` |
+| 1 | `CheckoutController@checkCoupon` | Logic kiểm tra giới hạn coupon bỏ trống (`// ...`) — dễ abuse | ✅ Đã tách `CouponService` và validate server-side |
 | 2 | `InventoryService::restore()` | `change_type = 'IMPORT'` khi hoàn kho — sai semantic | ✅ Đã đổi sang `'RETURN'` |
 | 3 | Mail gửi sync | Request fail nếu SMTP chậm/lỗi | Chuyển sang `Queue::dispatch()` |
 
@@ -84,9 +84,9 @@ git push origin feature/ten-tinh-nang
 **Branch:** `fix/security-critical`
 
 **Checklist:**
-- [ ] `CouponService::validate()` — kiểm tra is_active, dates, max_uses, user đã dùng chưa
-- [ ] `CouponService::apply()` — tính discount theo type (percent/fixed)
-- [ ] `CouponService::recordUsage()` — ghi `coupon_usages` sau khi order tạo thành công
+- [x] `CouponService::validate()` — kiểm tra is_active, dates, max_uses, user đã dùng chưa
+- [x] `CouponService::calculate()` — tính discount theo type (percent/fixed)
+- [x] `CouponService::recordUsage()` — ghi `coupon_usages` sau khi order tạo thành công
 - [x] `InventoryService::restore()` — đổi `IMPORT` → `RETURN`
 - [ ] `OrderService::logStatus()` — bỏ `Order::find()` dư thừa
 - [ ] Rate limiting: `throttle:10,1` cho login, `throttle:5,1` cho checkout
@@ -248,4 +248,4 @@ Mỗi task coi là **XONG** khi:
 2. **`OrderService::logStatus()`** — Bỏ `Order::find()` thừa, dùng `$order->status`
 3. **`.gitignore`** — Thêm `/scratch/` và `/img/`
 4. **`CHANGELOG.md`** — Tạo file theo Keep a Changelog
-5. **`checkCoupon()`** — Implement kiểm tra `max_uses` đang bỏ trống
+5. **`checkCoupon()`** — Đã validate qua `CouponService`

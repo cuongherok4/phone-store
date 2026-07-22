@@ -4,6 +4,7 @@ namespace Tests\Unit\Services;
 
 use App\Models\Order;
 use App\Services\CartService;
+use App\Services\CouponService;
 use App\Services\InventoryService;
 use App\Services\OrderService;
 use Illuminate\Database\Schema\Blueprint;
@@ -56,7 +57,11 @@ class OrderServiceTest extends TestCase
         });
 
         $this->inventoryService = Mockery::mock(InventoryService::class);
-        $this->service = new OrderService(Mockery::mock(CartService::class), $this->inventoryService);
+        $this->service = new OrderService(
+            Mockery::mock(CartService::class),
+            $this->inventoryService,
+            Mockery::mock(CouponService::class)
+        );
     }
 
     public function test_customer_cannot_cancel_another_users_order(): void
