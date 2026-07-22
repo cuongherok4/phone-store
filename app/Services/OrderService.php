@@ -187,35 +187,51 @@ class OrderService
     public function confirmOnlinePayment(Order $order): bool
     {
         return DB::transaction(function () use ($order) {
-            // Sử dụng atomic update để kiểm tra và đánh dấu PAID cùng lúc
-            // Tránh race condition nếu IPN và Redirect callback xảy ra đồng thời
-            $affected = DB::table('orders')
-                ->where('id', $order->id)
-                ->where('payment_status', '!=', 'PAID')
-                ->update([
-                    'payment_status' => 'PAID',
-                    'status'         => 'CONFIRMED',
-                    'updated_at'     => now(),
-                ]);
+            $lockedOrder = Order::whereKey($order->id)
+                ->lockForUpdate()
+                ->first();
 
-            if ($affected > 0) {
-                // 1. Trừ tồn kho
-                foreach ($order->items as $item) {
-                    $this->inventoryService->deduct($item->variant_id, $item->quantity, $order->id);
-                }
-
-                $this->logStatus($order->id, 'CONFIRMED', 'Thanh toán online thành công. Đơn hàng đã được xác nhận.');
-
-                // 2. Xoá giỏ hàng của user
-                $this->cartService->clearCart();
-                
-                // Refresh model data
-                $order->refresh();
-                
-                return true;
+            if (! $lockedOrder) {
+                throw new Exception('Không tìm thấy đơn hàng thanh toán.');
             }
-            
-            return false;
+
+            if ($lockedOrder->payment_status === 'PAID') {
+                $order->setRawAttributes($lockedOrder->getAttributes(), true);
+                return false;
+            }
+
+            if ($lockedOrder->status === 'CANCELLED') {
+                throw new Exception('Đơn hàng đã bị hủy, không thể xác nhận thanh toán.');
+            }
+
+            if (! in_array($lockedOrder->payment_method, ['VNPAY', 'MOMO'])) {
+                throw new Exception('Phương thức thanh toán không hợp lệ cho xác nhận online.');
+            }
+
+            $lockedOrder->load('items');
+            $oldStatus = $lockedOrder->status;
+
+            foreach ($lockedOrder->items as $item) {
+                $this->inventoryService->deduct($item->variant_id, $item->quantity, $lockedOrder->id);
+            }
+
+            $lockedOrder->update([
+                'payment_status' => 'PAID',
+                'status'         => 'CONFIRMED',
+            ]);
+
+            $this->logStatus(
+                $lockedOrder->id,
+                'CONFIRMED',
+                'Thanh toán online thành công. Đơn hàng đã được xác nhận.',
+                null,
+                $oldStatus
+            );
+
+            $this->cartService->clearCart();
+            $order->setRawAttributes($lockedOrder->fresh()->getAttributes(), true);
+
+            return true;
         });
     }
 

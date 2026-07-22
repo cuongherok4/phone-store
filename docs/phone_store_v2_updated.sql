@@ -453,7 +453,7 @@ CREATE INDEX idx_orders_created          ON orders(created_at);
 
 -- Payments
 CREATE INDEX idx_payments_order          ON payments(order_id);
-CREATE INDEX idx_payments_transaction    ON payments(transaction_id);
+CREATE UNIQUE INDEX idx_payments_transaction    ON payments(transaction_id);
 
 -- Cart
 CREATE INDEX idx_cart_session            ON carts(session_id);
