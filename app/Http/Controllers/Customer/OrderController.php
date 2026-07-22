@@ -56,10 +56,7 @@ class OrderController extends Controller
         ]);
 
         try {
-            // Kiểm tra quyền sở hữu
-            $order = auth()->user()->orders()->findOrFail($id);
-            
-            $this->orderService->cancelOrder($id, $request->reason, auth()->id());
+            $this->orderService->cancelOrder($id, $request->reason, auth()->id(), auth()->id());
 
             return back()->with('success', 'Đã huỷ đơn hàng thành công.');
         } catch (\Exception $e) {
