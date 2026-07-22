@@ -8,9 +8,14 @@ use App\Models\OrderStatusHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\OrderService;
 
 class OrderController extends Controller
 {
+    public function __construct(private OrderService $orderService)
+    {
+    }
+
     /**
      * Danh sách đơn hàng với lọc.
      */
@@ -97,27 +102,14 @@ class OrderController extends Controller
     public function cancel(Request $request, $id)
     {
         $request->validate(['reason' => 'required|string|max:500']);
-        
-        $order = Order::findOrFail($id);
-        
-        if (in_array($order->status, ['COMPLETED', 'CANCELLED'])) {
-            return back()->with('error', 'Không thể huỷ đơn hàng ở trạng thái này.');
+
+        try {
+            $this->orderService->cancelOrder($id, 'Admin huỷ đơn: ' . $request->reason, auth()->id());
+
+            return back()->with('success', 'Đã huỷ đơn hàng và hoàn kho nếu đơn đã trừ tồn.');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
         }
-
-        DB::transaction(function() use ($order, $request) {
-            $order->update(['status' => 'CANCELLED']);
-
-            OrderStatusHistory::create([
-                'order_id'   => $order->id,
-                'changed_by' => auth()->id(),
-                'old_status' => $order->status,
-                'new_status' => 'CANCELLED',
-                'note'       => 'Admin huỷ đơn: ' . $request->reason,
-                'created_at' => now(),
-            ]);
-        });
-
-        return back()->with('success', 'Đã huỷ đơn hàng.');
     }
 
     /**

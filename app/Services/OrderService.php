@@ -226,6 +226,8 @@ class OrderService
         }
 
         DB::transaction(function () use ($order, $reason, $userId) {
+            $oldStatus = $order->status;
+
             $order->update([
                 'status' => 'CANCELLED',
                 'cancelled_reason' => $reason
@@ -241,7 +243,7 @@ class OrderService
                 }
             }
 
-            $this->logStatus($order->id, 'CANCELLED', "Huỷ đơn hàng. Lý do: {$reason}", $userId);
+            $this->logStatus($order->id, 'CANCELLED', "Huỷ đơn hàng. Lý do: {$reason}", $userId, $oldStatus);
         });
 
         return $order;
@@ -255,6 +257,7 @@ class OrderService
         $order = Order::findOrFail($orderId);
         
         DB::transaction(function () use ($order, $status, $note, $userId) {
+            $oldStatus = $order->status;
             $updateData = ['status' => $status];
             
             // Nếu đơn hàng hoàn thành, tự động chuyển sang Đã thanh toán
@@ -263,7 +266,7 @@ class OrderService
             }
 
             $order->update($updateData);
-            $this->logStatus($order->id, $status, $note, $userId);
+            $this->logStatus($order->id, $status, $note, $userId, $oldStatus);
         });
 
         return $order;
@@ -272,10 +275,12 @@ class OrderService
     /**
      * Ghi lịch sử trạng thái.
      */
-    protected function logStatus(int $orderId, string $status, string $note = null, $userId = null)
+    protected function logStatus(int $orderId, string $status, string $note = null, $userId = null, ?string $oldStatus = null)
     {
-        $order = Order::find($orderId);
-        $oldStatus = $order ? $order->status : null;
+        if ($oldStatus === null) {
+            $order = Order::find($orderId);
+            $oldStatus = $order ? $order->status : null;
+        }
 
         OrderStatusHistory::create([
             'order_id'   => $orderId,

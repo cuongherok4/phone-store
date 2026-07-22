@@ -14,6 +14,7 @@ use Tests\TestCase;
 class OrderServiceTest extends TestCase
 {
     private OrderService $service;
+    private $inventoryService;
 
     protected function setUp(): void
     {
@@ -54,10 +55,8 @@ class OrderServiceTest extends TestCase
             $table->timestamp('created_at')->nullable();
         });
 
-        $this->service = new OrderService(
-            Mockery::mock(CartService::class),
-            Mockery::mock(InventoryService::class)
-        );
+        $this->inventoryService = Mockery::mock(InventoryService::class);
+        $this->service = new OrderService(Mockery::mock(CartService::class), $this->inventoryService);
     }
 
     public function test_customer_cannot_cancel_another_users_order(): void
@@ -88,6 +87,7 @@ class OrderServiceTest extends TestCase
         $this->assertSame('Đổi ý', $order->cancelled_reason);
         $this->assertDatabaseHas('order_status_histories', [
             'order_id' => $order->id,
+            'old_status' => 'PENDING',
             'new_status' => 'CANCELLED',
             'changed_by' => 1,
         ]);
@@ -104,5 +104,38 @@ class OrderServiceTest extends TestCase
         $this->expectExceptionMessage('không thể huỷ');
 
         $this->service->cancelOrder($order->id, 'Đổi ý', 1, 1);
+    }
+
+    public function test_admin_cancel_restores_stock_for_cod_order(): void
+    {
+        $order = Order::create([
+            'user_id' => 1,
+            'status' => 'CONFIRMED',
+            'payment_method' => 'COD',
+            'payment_status' => 'UNPAID',
+        ]);
+
+        \DB::table('order_items')->insert([
+            'order_id' => $order->id,
+            'variant_id' => 10,
+            'quantity' => 2,
+        ]);
+
+        $this->inventoryService
+            ->shouldReceive('restore')
+            ->once()
+            ->with(10, 2, $order->id);
+
+        $this->service->cancelOrder($order->id, 'Admin huỷ đơn: Khách đổi địa chỉ', 99);
+
+        $order->refresh();
+
+        $this->assertSame('CANCELLED', $order->status);
+        $this->assertDatabaseHas('order_status_histories', [
+            'order_id' => $order->id,
+            'old_status' => 'CONFIRMED',
+            'new_status' => 'CANCELLED',
+            'changed_by' => 99,
+        ]);
     }
 }
