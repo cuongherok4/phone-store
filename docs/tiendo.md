@@ -26,7 +26,7 @@
 | **GĐ 4** | Tài khoản, đánh giá, yêu thích, thông báo | 🟢 Done | **100%** |
 | **GĐ 5** | Quản trị vận hành shop | 🟢 Done | **100%** |
 | **GĐ 6** | Thanh toán, hóa đơn, báo cáo | 🟡 Doing | **90%** |
-| **GĐ 7** | Hiệu năng và tối ưu truy vấn | 🟡 Doing | **60%** |
+| **GĐ 7** | Hiệu năng và tối ưu truy vấn | 🟡 Doing | **70%** |
 | **GĐ 8** | Bảo mật và phân quyền | 🟡 Doing | **70%** |
 | **GĐ 9** | Kiểm thử tự động | 🟡 Doing | **30%** |
 | **GĐ 10** | CI/CD và triển khai thật | 🟡 Doing | **45%** |
@@ -215,7 +215,7 @@ git commit -m "docs(deploy): add production environment checklist"
 | 7.3 | Cache cột rating sản phẩm | 🟢 | `avg_rating`, `review_count` |
 | 7.4 | Cache tổng tồn kho variant | 🟢 | `total_stock` |
 | 7.5 | Bỏ `withAvg/withCount` ở listing | 🟢 | Listing dùng cột cache |
-| 7.6 | Cache homepage | 🔴 | Nên cache banner, sản phẩm mới/nổi bật |
+| 7.6 | Cache homepage | 🟢 | Cache banner, thương hiệu, sản phẩm mới/nổi bật; admin cập nhật dữ liệu sẽ tự xóa cache |
 | 7.7 | Cache dashboard admin | 🟡 | Có cache một phần, cần chuẩn hóa TTL |
 | 7.8 | Queue gửi mail | 🔴 | Giảm độ trễ checkout |
 | 7.9 | Tối ưu related products | 🔴 | Tránh `inRandomOrder()` trực tiếp khi dữ liệu lớn |
@@ -296,7 +296,7 @@ git commit -m "docs(deploy): add production environment checklist"
 | Mã | Việc | Lý do |
 |---|---|---|
 | **7.8** | Chuyển email sang queue | Giảm độ trễ khi đặt hàng |
-| **7.6, 7.7** | Cache homepage/dashboard | Cải thiện tốc độ khi có traffic |
+| **7.7** | Chuẩn hóa cache dashboard | Cải thiện tốc độ khi có traffic admin |
 | **7.10** | Tối ưu search | Cần khi dữ liệu sản phẩm tăng |
 
 ### Phase 4: Deploy (P1)
@@ -364,6 +364,7 @@ Xây dựng hệ thống thương mại điện tử bán điện thoại bằng
 | 23/07/2026 | Hoàn thành mục `5.3`: admin hủy đơn dùng service chung và hoàn kho bằng log `RETURN` |
 | 23/07/2026 | Hoàn thành mục `5.7`: tách CouponService, áp dụng coupon server-side và thêm test |
 | 23/07/2026 | Hoàn thành mục `6.4`: xác nhận thanh toán online idempotent, tránh trừ kho/log/mail trùng khi callback lặp |
+| 23/07/2026 | Hoàn thành mục `7.6`: cache dữ liệu homepage và tự xóa cache khi admin cập nhật banner/sản phẩm/thương hiệu |
 
 ---
 

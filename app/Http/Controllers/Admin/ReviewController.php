@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Review;
+use App\Services\HomepageCacheService;
 use Illuminate\Http\Request;
 
 class ReviewController extends Controller
@@ -37,6 +38,7 @@ class ReviewController extends Controller
 
         // Cập nhật lại cache rating của product
         $review->product?->syncReviewStats();
+        app(HomepageCacheService::class)->flush();
 
         return back()->with('success', 'Đã duyệt đánh giá.');
     }
@@ -52,6 +54,7 @@ class ReviewController extends Controller
 
         // Cập nhật lại cache rating của product
         $product?->syncReviewStats();
+        app(HomepageCacheService::class)->flush();
 
         return back()->with('success', 'Đã xoá đánh giá.');
     }

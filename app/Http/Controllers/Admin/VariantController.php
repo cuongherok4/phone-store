@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\VariantAttribute;
 use App\Models\VariantImage;
+use App\Services\HomepageCacheService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -53,6 +54,7 @@ class VariantController extends Controller
                 $this->handleImageUpload($variant, $request->file('images'), $request->integer('primary_image') ?? 0);
             }
         });
+        app(HomepageCacheService::class)->flush();
 
         return redirect()->route('admin.products.variants.index', $product->id)
             ->with('success', 'Thêm biến thể thành công!');
@@ -78,6 +80,7 @@ class VariantController extends Controller
                 $this->handleImageUpload($variant, $request->file('images'), $request->integer('primary_image') ?? 0);
             }
         });
+        app(HomepageCacheService::class)->flush();
 
         return redirect()->route('admin.products.variants.index', $variant->product_id)
             ->with('success', 'Cập nhật biến thể thành công!');
@@ -95,6 +98,7 @@ class VariantController extends Controller
         }
 
         $variant->delete();
+        app(HomepageCacheService::class)->flush();
 
         return redirect()->route('admin.products.variants.index', $productId)
             ->with('success', 'Đã xoá biến thể.');
@@ -110,6 +114,7 @@ class VariantController extends Controller
 
         $variant = ProductVariant::findOrFail($id);
         $this->handleImageUpload($variant, $request->file('images'), -1); // -1 = không set primary
+        app(HomepageCacheService::class)->flush();
 
         return redirect()->route('admin.products.variants.index', $variant->product_id)
             ->with('success', 'Upload ảnh thành công!');
@@ -122,6 +127,7 @@ class VariantController extends Controller
         Storage::disk('public')->delete($img->image_url);
         $productId = $img->variant->product_id;
         $img->delete();
+        app(HomepageCacheService::class)->flush();
 
         return redirect()->back()->with('success', 'Đã xoá ảnh.');
     }
@@ -136,6 +142,7 @@ class VariantController extends Controller
             ->update(['is_primary' => false]);
 
         $img->update(['is_primary' => true]);
+        app(HomepageCacheService::class)->flush();
 
         return redirect()->back()->with('success', 'Đã đặt ảnh chính.');
     }
