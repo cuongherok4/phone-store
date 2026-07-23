@@ -230,8 +230,8 @@ git commit -m "docs(deploy): add production environment checklist"
 | 8.1 | Middleware admin | 🟢 | Đã có bảo vệ route admin |
 | 8.2 | Phân quyền theo role | 🟡 | Có Spatie, cần thống nhất dùng role/permission |
 | 8.3 | Policy xem đơn hàng | 🟢 | Có `OrderPolicy::view`, khách chỉ xem đơn của mình, admin xem được mọi đơn |
-| 8.4 | Policy hủy đơn hàng | 🔴 | Chỉ chủ đơn/admin được hủy theo trạng thái hợp lệ |
-| 8.5 | Rate limit login | 🔴 | Chống brute force |
+| 8.4 | Policy hủy đơn hàng | 🟢 | Có `OrderPolicy::cancel`, chỉ chủ đơn/admin hủy được đơn ở trạng thái hợp lệ |
+| 8.5 | Rate limit login | 🟢 | Giới hạn 5 lần sai/phút theo email + IP, đăng nhập đúng sẽ xóa bộ đếm |
 | 8.6 | Rate limit checkout/coupon | 🔴 | Chống spam đặt hàng/check mã |
 | 8.7 | Coupon validation đầy đủ | 🟢 | Active, thời gian, tổng lượt, lượt/user, đơn tối thiểu, tính giảm giá server-side, chống ghi trùng usage theo order |
 | 8.8 | Idempotent payment callback | 🟢 | Đã có khóa order, payment record idempotent theo mã giao dịch và test service |
@@ -365,6 +365,8 @@ Xây dựng hệ thống thương mại điện tử bán điện thoại bằng
 | 23/07/2026 | Hoàn thành mục `5.7`: tách CouponService, áp dụng coupon server-side và thêm test |
 | 23/07/2026 | Siết thêm mục `8.7`: chống coupon usage trùng order, validate user/subtotal và bổ sung unique index |
 | 23/07/2026 | Hoàn thành mục `8.3`: thêm OrderPolicy cho quyền xem đơn hàng |
+| 23/07/2026 | Hoàn thành mục `8.4`: thêm policy hủy đơn hàng cho khách và admin |
+| 23/07/2026 | Hoàn thành mục `8.5`: thêm rate limit login chống brute force |
 | 23/07/2026 | Hoàn thành mục `6.4`: xác nhận thanh toán online idempotent, tránh trừ kho/log/mail trùng khi callback lặp |
 | 23/07/2026 | Hoàn thành mục `7.6`: cache dữ liệu homepage và tự xóa cache khi admin cập nhật banner/sản phẩm/thương hiệu |
 
