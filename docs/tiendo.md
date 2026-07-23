@@ -229,7 +229,7 @@ git commit -m "docs(deploy): add production environment checklist"
 |---|---|:---:|---|
 | 8.1 | Middleware admin | 🟢 | Đã có bảo vệ route admin |
 | 8.2 | Phân quyền theo role | 🟡 | Có Spatie, cần thống nhất dùng role/permission |
-| 8.3 | Policy xem đơn hàng | 🔴 | Khách chỉ xem đơn của chính mình |
+| 8.3 | Policy xem đơn hàng | 🟢 | Có `OrderPolicy::view`, khách chỉ xem đơn của mình, admin xem được mọi đơn |
 | 8.4 | Policy hủy đơn hàng | 🔴 | Chỉ chủ đơn/admin được hủy theo trạng thái hợp lệ |
 | 8.5 | Rate limit login | 🔴 | Chống brute force |
 | 8.6 | Rate limit checkout/coupon | 🔴 | Chống spam đặt hàng/check mã |
@@ -364,6 +364,7 @@ Xây dựng hệ thống thương mại điện tử bán điện thoại bằng
 | 23/07/2026 | Hoàn thành mục `5.3`: admin hủy đơn dùng service chung và hoàn kho bằng log `RETURN` |
 | 23/07/2026 | Hoàn thành mục `5.7`: tách CouponService, áp dụng coupon server-side và thêm test |
 | 23/07/2026 | Siết thêm mục `8.7`: chống coupon usage trùng order, validate user/subtotal và bổ sung unique index |
+| 23/07/2026 | Hoàn thành mục `8.3`: thêm OrderPolicy cho quyền xem đơn hàng |
 | 23/07/2026 | Hoàn thành mục `6.4`: xác nhận thanh toán online idempotent, tránh trừ kho/log/mail trùng khi callback lặp |
 | 23/07/2026 | Hoàn thành mục `7.6`: cache dữ liệu homepage và tự xóa cache khi admin cập nhật banner/sản phẩm/thương hiệu |
 
