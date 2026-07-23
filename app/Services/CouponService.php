@@ -11,6 +11,14 @@ class CouponService
 {
     public function validate(string $code, int $userId, float $subtotal, bool $lockForUpdate = false): array
     {
+        if ($userId <= 0) {
+            throw new Exception('Vui lòng đăng nhập để sử dụng mã giảm giá.');
+        }
+
+        if ($subtotal <= 0) {
+            throw new Exception('Giá trị đơn hàng không hợp lệ để dùng mã giảm giá.');
+        }
+
         $query = Coupon::where('code', strtoupper(trim($code)));
 
         if ($lockForUpdate) {
@@ -59,6 +67,10 @@ class CouponService
 
     public function calculate(Coupon $coupon, float $subtotal): float
     {
+        if ($subtotal <= 0) {
+            return 0.0;
+        }
+
         if ($coupon->discount_type === 'percent') {
             $discount = $subtotal * ((float) $coupon->discount_value / 100);
 
@@ -74,12 +86,23 @@ class CouponService
 
     public function recordUsage(Coupon $coupon, Order $order, int $userId): void
     {
-        CouponUsage::create([
-            'coupon_id' => $coupon->id,
-            'user_id' => $userId,
-            'order_id' => $order->id,
-        ]);
+        if ($userId <= 0) {
+            throw new Exception('Không thể ghi nhận mã giảm giá cho người dùng không hợp lệ.');
+        }
 
-        $coupon->increment('used_count');
+        $usage = CouponUsage::firstOrCreate(
+            [
+                'coupon_id' => $coupon->id,
+                'order_id' => $order->id,
+            ],
+            [
+                'user_id' => $userId,
+                'used_at' => now(),
+            ]
+        );
+
+        if ($usage->wasRecentlyCreated) {
+            $coupon->increment('used_count');
+        }
     }
 }

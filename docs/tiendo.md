@@ -233,7 +233,7 @@ git commit -m "docs(deploy): add production environment checklist"
 | 8.4 | Policy hủy đơn hàng | 🔴 | Chỉ chủ đơn/admin được hủy theo trạng thái hợp lệ |
 | 8.5 | Rate limit login | 🔴 | Chống brute force |
 | 8.6 | Rate limit checkout/coupon | 🔴 | Chống spam đặt hàng/check mã |
-| 8.7 | Coupon validation đầy đủ | 🟢 | Active, thời gian, tổng lượt, lượt/user, đơn tối thiểu, tính giảm giá server-side |
+| 8.7 | Coupon validation đầy đủ | 🟢 | Active, thời gian, tổng lượt, lượt/user, đơn tối thiểu, tính giảm giá server-side, chống ghi trùng usage theo order |
 | 8.8 | Idempotent payment callback | 🟢 | Đã có khóa order, payment record idempotent theo mã giao dịch và test service |
 | 8.9 | Không commit secret | 🟢 | `.env` ignore, dùng `.env.example` |
 | 8.10 | Kiểm tra file upload | 🔴 | Ràng buộc mime/size và lưu storage an toàn |
@@ -363,6 +363,7 @@ Xây dựng hệ thống thương mại điện tử bán điện thoại bằng
 | 23/07/2026 | Hoàn thành mục `4.6`: kiểm tra quyền sở hữu khi khách hủy đơn hàng |
 | 23/07/2026 | Hoàn thành mục `5.3`: admin hủy đơn dùng service chung và hoàn kho bằng log `RETURN` |
 | 23/07/2026 | Hoàn thành mục `5.7`: tách CouponService, áp dụng coupon server-side và thêm test |
+| 23/07/2026 | Siết thêm mục `8.7`: chống coupon usage trùng order, validate user/subtotal và bổ sung unique index |
 | 23/07/2026 | Hoàn thành mục `6.4`: xác nhận thanh toán online idempotent, tránh trừ kho/log/mail trùng khi callback lặp |
 | 23/07/2026 | Hoàn thành mục `7.6`: cache dữ liệu homepage và tự xóa cache khi admin cập nhật banner/sản phẩm/thương hiệu |
 

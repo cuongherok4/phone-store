@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class CouponUsage extends Model
 {
     public $timestamps = false;
-    protected $fillable = ['coupon_id', 'user_id', 'order_id'];
+    protected $fillable = ['coupon_id', 'user_id', 'order_id', 'used_at'];
 
     protected $casts = ['used_at' => 'datetime'];
 

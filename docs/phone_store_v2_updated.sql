@@ -467,6 +467,7 @@ CREATE INDEX idx_notifications_user      ON notifications(user_id, is_read);
 
 -- Coupon usages
 CREATE INDEX idx_coupon_usage_user       ON coupon_usages(coupon_id, user_id);
+CREATE UNIQUE INDEX idx_coupon_usage_order_unique ON coupon_usages(coupon_id, order_id);
 
 -- Wishlist
 CREATE INDEX idx_wishlist_user           ON wishlists(user_id);
