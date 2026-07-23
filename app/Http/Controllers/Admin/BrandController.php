@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BrandRequest;
 use App\Models\Brand;
+use App\Services\HomepageCacheService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -33,6 +34,7 @@ class BrandController extends Controller
         }
 
         Brand::create($data);
+        app(HomepageCacheService::class)->flush();
 
         return redirect()->route('admin.brands.index')
             ->with('success', 'Thương hiệu đã được tạo thành công.');
@@ -60,6 +62,7 @@ class BrandController extends Controller
         }
 
         $thuong_hieu->update($data);
+        app(HomepageCacheService::class)->flush();
 
         return redirect()->route('admin.brands.index')
             ->with('success', 'Thương hiệu đã được cập nhật thành công.');
@@ -77,6 +80,7 @@ class BrandController extends Controller
         }
 
         $thuong_hieu->delete();
+        app(HomepageCacheService::class)->flush();
 
         return redirect()->route('admin.brands.index')
             ->with('success', 'Thương hiệu đã được xóa thành công.');

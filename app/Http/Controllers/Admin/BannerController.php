@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Banner;
+use App\Services\HomepageCacheService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -35,6 +36,7 @@ class BannerController extends Controller
         }
 
         Banner::create($data);
+        app(HomepageCacheService::class)->flush();
 
         return redirect()->route('admin.banners.index')->with('success', 'Thêm banner thành công!');
     }
@@ -63,6 +65,7 @@ class BannerController extends Controller
         }
 
         $banner->update($data);
+        app(HomepageCacheService::class)->flush();
 
         return redirect()->route('admin.banners.index')->with('success', 'Cập nhật banner thành công!');
     }
@@ -73,6 +76,7 @@ class BannerController extends Controller
             Storage::disk('public')->delete($banner->image_url);
         }
         $banner->delete();
+        app(HomepageCacheService::class)->flush();
 
         return redirect()->route('admin.banners.index')->with('success', 'Xóa banner thành công!');
     }

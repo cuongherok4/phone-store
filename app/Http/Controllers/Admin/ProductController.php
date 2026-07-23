@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreProductRequest;
 use App\Models\Brand;
 use App\Models\Product;
+use App\Services\HomepageCacheService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -50,6 +51,7 @@ class ProductController extends Controller
     public function store(StoreProductRequest $request)
     {
         Product::create($request->validated());
+        app(HomepageCacheService::class)->flush();
 
         return redirect()->route('admin.products.index')
             ->with('success', 'Thêm sản phẩm thành công!');
@@ -67,6 +69,7 @@ class ProductController extends Controller
     {
         $product = Product::withTrashed()->findOrFail($id);
         $product->update($request->validated());
+        app(HomepageCacheService::class)->flush();
 
         return redirect()->route('admin.products.index')
             ->with('success', 'Cập nhật sản phẩm thành công!');
@@ -76,6 +79,7 @@ class ProductController extends Controller
     {
         $product = Product::findOrFail($id);
         $product->delete(); // soft delete, variants cascade
+        app(HomepageCacheService::class)->flush();
 
         return redirect()->route('admin.products.index')
             ->with('success', 'Đã xoá sản phẩm.');
