@@ -28,7 +28,7 @@
 | **GĐ 6** | Thanh toán, hóa đơn, báo cáo | 🟡 Doing | **90%** |
 | **GĐ 7** | Hiệu năng và tối ưu truy vấn | 🟡 Doing | **70%** |
 | **GĐ 8** | Bảo mật và phân quyền | 🟡 Doing | **70%** |
-| **GĐ 9** | Kiểm thử tự động | 🟡 Doing | **40%** |
+| **GĐ 9** | Kiểm thử tự động | 🟡 Doing | **50%** |
 | **GĐ 10** | CI/CD và triển khai thật | 🟡 Doing | **45%** |
 
 ### 💡 Đánh giá hiện tại
@@ -246,7 +246,7 @@ git commit -m "docs(deploy): add production environment checklist"
 |---|---|:---:|---|
 | 9.1 | Xóa/đổi ExampleTest mặc định | 🔴 | Test hiện tại chưa có giá trị thật |
 | 9.2 | Test InventoryService | 🟢 | Đã cover kiểm tra tồn kho, import, deduct, restore, adjust và rollback khi thiếu hàng |
-| 9.3 | Test OrderService | 🟡 | Đã có test hủy đơn, hoàn kho và xác nhận thanh toán online idempotent |
+| 9.3 | Test OrderService | 🟢 | Đã cover tạo đơn COD/online, trừ kho, hủy đơn, hoàn kho và xác nhận thanh toán idempotent |
 | 9.4 | Test CouponService | 🟢 | Đã có test validate, calculate, record usage |
 | 9.5 | Test Cart flow | 🔴 | Add/update/remove/select items |
 | 9.6 | Test Checkout flow | 🔴 | Tạo đơn, validate tồn kho, coupon |
@@ -371,6 +371,7 @@ Xây dựng hệ thống thương mại điện tử bán điện thoại bằng
 | 23/07/2026 | Hoàn thành mục `6.4`: xác nhận thanh toán online idempotent, tránh trừ kho/log/mail trùng khi callback lặp |
 | 23/07/2026 | Hoàn thành mục `7.6`: cache dữ liệu homepage và tự xóa cache khi admin cập nhật banner/sản phẩm/thương hiệu |
 | 23/07/2026 | Hoàn thành mục `9.2`: bổ sung test InventoryService cho import/deduct/restore/adjust |
+| 23/07/2026 | Hoàn thành mục `9.3`: bổ sung test OrderService cho COD/online checkout, cancel và stock deduction |
 
 ---
 

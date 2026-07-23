@@ -2,11 +2,16 @@
 
 namespace Tests\Unit\Services;
 
+use App\Models\Cart;
+use App\Models\CartItem;
 use App\Models\Order;
+use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Services\CartService;
 use App\Services\CouponService;
 use App\Services\InventoryService;
 use App\Services\OrderService;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Mockery;
@@ -29,6 +34,8 @@ class OrderServiceTest extends TestCase
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('user_id')->nullable();
+            $table->unsignedBigInteger('address_id')->nullable();
+            $table->unsignedBigInteger('coupon_id')->nullable();
             $table->decimal('subtotal', 12, 2)->default(0);
             $table->decimal('discount_amount', 12, 2)->default(0);
             $table->decimal('shipping_fee', 12, 2)->default(0);
@@ -36,6 +43,10 @@ class OrderServiceTest extends TestCase
             $table->string('status')->default('PENDING');
             $table->string('payment_status')->default('UNPAID');
             $table->string('payment_method')->default('VNPAY');
+            $table->string('shipping_name')->nullable();
+            $table->string('shipping_phone')->nullable();
+            $table->string('shipping_address')->nullable();
+            $table->text('note')->nullable();
             $table->string('cancelled_reason')->nullable();
             $table->timestamps();
         });
@@ -44,7 +55,11 @@ class OrderServiceTest extends TestCase
             $table->id();
             $table->unsignedBigInteger('order_id');
             $table->unsignedBigInteger('variant_id')->nullable();
+            $table->string('sku')->nullable();
+            $table->string('name')->nullable();
+            $table->decimal('price', 12, 2)->default(0);
             $table->integer('quantity')->default(1);
+            $table->decimal('subtotal', 12, 2)->default(0);
         });
 
         Schema::create('order_status_histories', function (Blueprint $table) {
@@ -64,6 +79,95 @@ class OrderServiceTest extends TestCase
             $this->inventoryService,
             Mockery::mock(CouponService::class)
         );
+    }
+
+    public function test_cod_checkout_creates_order_and_deducts_stock_immediately(): void
+    {
+        $cart = $this->makeCartWithSelectedItem(10, 2, 12_000_000, 'IP15', 'iPhone 15');
+
+        $this->cartService
+            ->shouldReceive('getOrCreateCart')
+            ->once()
+            ->andReturn($cart);
+        $this->cartService
+            ->shouldReceive('clearCart')
+            ->once();
+
+        $this->inventoryService
+            ->shouldReceive('assertManyAvailable')
+            ->once()
+            ->with(Mockery::on(fn ($items) => $items[0]['variant_id'] === 10 && $items[0]['quantity'] === 2), true);
+        $this->inventoryService
+            ->shouldReceive('deduct')
+            ->once()
+            ->with(10, 2, Mockery::type('int'));
+
+        $order = $this->service->createFromCart($this->checkoutData('COD'));
+
+        $this->assertSame('COD', $order->payment_method);
+        $this->assertSame('UNPAID', $order->payment_status);
+        $this->assertSame(24_000_000.0, $order->subtotal);
+        $this->assertSame(24_000_000.0, $order->total_price);
+        $this->assertDatabaseHas('order_items', [
+            'order_id' => $order->id,
+            'variant_id' => 10,
+            'sku' => 'IP15',
+            'name' => 'iPhone 15',
+            'quantity' => 2,
+            'subtotal' => 24_000_000,
+        ]);
+        $this->assertDatabaseHas('order_status_histories', [
+            'order_id' => $order->id,
+            'new_status' => 'PENDING',
+        ]);
+    }
+
+    public function test_online_checkout_defers_stock_deduction_until_gateway_confirmation(): void
+    {
+        $cart = $this->makeCartWithSelectedItem(10, 2, 12_000_000, 'IP15', 'iPhone 15');
+
+        $this->cartService
+            ->shouldReceive('getOrCreateCart')
+            ->once()
+            ->andReturn($cart);
+        $this->cartService
+            ->shouldReceive('clearCart')
+            ->once();
+
+        $this->inventoryService
+            ->shouldReceive('assertManyAvailable')
+            ->once()
+            ->with(Mockery::on(fn ($items) => $items[0]['variant_id'] === 10 && $items[0]['quantity'] === 2), true);
+        $this->inventoryService
+            ->shouldNotReceive('deduct');
+
+        $order = $this->service->createFromCart($this->checkoutData('VNPAY'));
+
+        $this->assertSame('VNPAY', $order->payment_method);
+        $this->assertSame('UNPAID', $order->payment_status);
+        $this->assertSame('PENDING', $order->status);
+        $this->assertDatabaseHas('order_items', [
+            'order_id' => $order->id,
+            'variant_id' => 10,
+            'quantity' => 2,
+        ]);
+    }
+
+    public function test_checkout_requires_at_least_one_selected_cart_item(): void
+    {
+        $cart = new Cart();
+        $cart->setRelation('items', new EloquentCollection());
+        $cart->setRelation('selectedItems', new EloquentCollection());
+
+        $this->cartService
+            ->shouldReceive('getOrCreateCart')
+            ->once()
+            ->andReturn($cart);
+
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('ít nhất một sản phẩm');
+
+        $this->service->createFromCart($this->checkoutData('COD'));
     }
 
     public function test_customer_cannot_cancel_another_users_order(): void
@@ -218,5 +322,44 @@ class OrderServiceTest extends TestCase
         $this->expectExceptionMessage('đã bị hủy');
 
         $this->service->confirmOnlinePayment($order);
+    }
+
+    private function checkoutData(string $paymentMethod): array
+    {
+        return [
+            'shipping_name' => 'Nguyen Van A',
+            'shipping_phone' => '0900000000',
+            'shipping_address' => '123 Nguyen Trai',
+            'shipping_fee' => 0,
+            'payment_method' => $paymentMethod,
+        ];
+    }
+
+    private function makeCartWithSelectedItem(int $variantId, int $quantity, float $price, string $sku, string $productName): Cart
+    {
+        $product = new Product(['name' => $productName]);
+
+        $variant = new ProductVariant([
+            'sku' => $sku,
+            'price' => $price,
+            'is_active' => true,
+        ]);
+        $variant->id = $variantId;
+        $variant->setRelation('product', $product);
+        $variant->setRelation('variantAttributes', new EloquentCollection());
+
+        $cartItem = new CartItem([
+            'variant_id' => $variantId,
+            'quantity' => $quantity,
+            'is_selected' => true,
+        ]);
+        $cartItem->setRelation('variant', $variant);
+
+        $items = new EloquentCollection([$cartItem]);
+        $cart = new Cart();
+        $cart->setRelation('items', $items);
+        $cart->setRelation('selectedItems', $items);
+
+        return $cart;
     }
 }
