@@ -240,11 +240,8 @@ class CheckoutController extends Controller
     public function success($orderId)
     {
         $order = \App\Models\Order::with('items.variant.product')->findOrFail($orderId);
-        
-        // Bảo mật: chỉ cho phép người mua xem trang thành công (nếu đã login)
-        if (auth()->check() && $order->user_id !== auth()->id()) {
-            abort(403);
-        }
+
+        $this->authorize('view', $order);
 
         return view('customer.checkout.success', compact('order'));
     }

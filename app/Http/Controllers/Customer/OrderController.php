@@ -34,14 +34,15 @@ class OrderController extends Controller
      */
     public function show($id)
     {
-        $order = auth()->user()->orders()
-            ->with([
-                'items.variant.product', 
+        $order = Order::with([
+                'items.variant.product',
                 'items.variant.images',
                 'statusHistories.changedBy',
                 'address'
             ])
             ->findOrFail($id);
+
+        $this->authorize('view', $order);
 
         return view('customer.orders.show', compact('order'));
     }
