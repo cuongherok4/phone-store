@@ -49,6 +49,7 @@ class CouponServiceTest extends TestCase
             $table->unsignedBigInteger('user_id');
             $table->unsignedBigInteger('order_id')->nullable();
             $table->timestamp('used_at')->nullable();
+            $table->unique(['coupon_id', 'order_id']);
         });
 
         $this->service = app(CouponService::class);
@@ -103,6 +104,40 @@ class CouponServiceTest extends TestCase
         $this->service->validate('MIN500', 1, 300_000);
     }
 
+    public function test_coupon_requires_authenticated_user(): void
+    {
+        Coupon::create([
+            'code' => 'LOGIN',
+            'discount_type' => 'fixed',
+            'discount_value' => 50_000,
+            'min_order_value' => 0,
+            'max_uses_per_user' => 1,
+            'is_active' => true,
+        ]);
+
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('đăng nhập');
+
+        $this->service->validate('LOGIN', 0, 500_000);
+    }
+
+    public function test_coupon_requires_positive_subtotal(): void
+    {
+        Coupon::create([
+            'code' => 'TOTAL',
+            'discount_type' => 'fixed',
+            'discount_value' => 50_000,
+            'min_order_value' => 0,
+            'max_uses_per_user' => 1,
+            'is_active' => true,
+        ]);
+
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('không hợp lệ');
+
+        $this->service->validate('TOTAL', 1, 0);
+    }
+
     public function test_coupon_rejects_user_usage_limit(): void
     {
         $coupon = Coupon::create([
@@ -146,6 +181,26 @@ class CouponServiceTest extends TestCase
             'order_id' => $order->id,
             'user_id' => 1,
         ]);
+        $this->assertSame(1, $coupon->fresh()->used_count);
+    }
+
+    public function test_record_usage_is_idempotent_for_same_order(): void
+    {
+        $coupon = Coupon::create([
+            'code' => 'ONETIME',
+            'discount_type' => 'fixed',
+            'discount_value' => 50_000,
+            'min_order_value' => 0,
+            'max_uses_per_user' => 1,
+            'used_count' => 0,
+            'is_active' => true,
+        ]);
+        $order = Order::create(['user_id' => 1]);
+
+        $this->service->recordUsage($coupon, $order, 1);
+        $this->service->recordUsage($coupon->fresh(), $order, 1);
+
+        $this->assertSame(1, \DB::table('coupon_usages')->count());
         $this->assertSame(1, $coupon->fresh()->used_count);
     }
 }
