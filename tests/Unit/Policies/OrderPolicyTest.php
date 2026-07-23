@@ -61,4 +61,38 @@ class OrderPolicyTest extends TestCase
 
         $this->assertTrue(Gate::forUser($admin)->allows('view', $order));
     }
+
+    public function test_customer_can_cancel_own_pending_order(): void
+    {
+        $user = User::create(['name' => 'Customer', 'email' => 'customer@example.com', 'role' => 'customer']);
+        $order = Order::create(['user_id' => $user->id, 'status' => 'PENDING']);
+
+        $this->assertTrue(Gate::forUser($user)->allows('cancel', $order));
+    }
+
+    public function test_customer_cannot_cancel_another_users_order(): void
+    {
+        $user = User::create(['name' => 'Customer', 'email' => 'customer@example.com', 'role' => 'customer']);
+        $other = User::create(['name' => 'Other', 'email' => 'other@example.com', 'role' => 'customer']);
+        $order = Order::create(['user_id' => $other->id, 'status' => 'PENDING']);
+
+        $this->assertFalse(Gate::forUser($user)->allows('cancel', $order));
+    }
+
+    public function test_customer_cannot_cancel_completed_order(): void
+    {
+        $user = User::create(['name' => 'Customer', 'email' => 'customer@example.com', 'role' => 'customer']);
+        $order = Order::create(['user_id' => $user->id, 'status' => 'COMPLETED']);
+
+        $this->assertFalse(Gate::forUser($user)->allows('cancel', $order));
+    }
+
+    public function test_admin_can_cancel_any_cancellable_order(): void
+    {
+        $admin = User::create(['name' => 'Admin', 'email' => 'admin@example.com', 'role' => 'admin']);
+        $customer = User::create(['name' => 'Customer', 'email' => 'customer@example.com', 'role' => 'customer']);
+        $order = Order::create(['user_id' => $customer->id, 'status' => 'CONFIRMED']);
+
+        $this->assertTrue(Gate::forUser($admin)->allows('cancel', $order));
+    }
 }

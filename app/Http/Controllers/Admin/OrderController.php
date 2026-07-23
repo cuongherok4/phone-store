@@ -104,6 +104,9 @@ class OrderController extends Controller
         $request->validate(['reason' => 'required|string|max:500']);
 
         try {
+            $order = Order::findOrFail($id);
+            $this->authorize('cancel', $order);
+
             $this->orderService->cancelOrder($id, 'Admin huỷ đơn: ' . $request->reason, auth()->id());
 
             return back()->with('success', 'Đã huỷ đơn hàng và hoàn kho nếu đơn đã trừ tồn.');

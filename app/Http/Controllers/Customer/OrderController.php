@@ -57,6 +57,9 @@ class OrderController extends Controller
         ]);
 
         try {
+            $order = Order::findOrFail($id);
+            $this->authorize('cancel', $order);
+
             $this->orderService->cancelOrder($id, $request->reason, auth()->id(), auth()->id());
 
             return back()->with('success', 'Đã huỷ đơn hàng thành công.');
