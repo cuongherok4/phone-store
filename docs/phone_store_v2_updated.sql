@@ -436,10 +436,12 @@ CREATE TABLE notifications (
 -- Products
 CREATE INDEX idx_products_brand          ON products(brand_id);
 CREATE INDEX idx_products_status         ON products(status, deleted_at);
+CREATE FULLTEXT INDEX idx_products_search_fulltext ON products(name, short_desc, description);
 
 -- Variants
 CREATE INDEX idx_variant_price           ON product_variants(price);
 CREATE INDEX idx_variant_product         ON product_variants(product_id);
+CREATE INDEX idx_product_variants_sku    ON product_variants(sku);
 
 -- Variant attributes
 CREATE INDEX idx_variant_attr_value      ON variant_attributes(attribute_value_id);

@@ -1,6 +1,6 @@
 # 📱 PhoneStore - Theo Dõi Tiến Độ Hệ Thống
 
-> **Cập nhật lần cuối:** 23/07/2026
+> **Cập nhật lần cuối:** 24/07/2026
 > **Mục tiêu:** Xây dựng hệ thống thương mại điện tử bán điện thoại có thể triển khai thật, bàn giao cho khách hàng/doanh nghiệp sử dụng, có quy trình vận hành rõ ràng, dễ bảo trì và có khả năng mở rộng theo nhu cầu kinh doanh.
 
 ---
@@ -26,9 +26,9 @@
 | **GĐ 4** | Tài khoản, đánh giá, yêu thích, thông báo | 🟢 Done | **100%** |
 | **GĐ 5** | Quản trị vận hành shop | 🟢 Done | **100%** |
 | **GĐ 6** | Thanh toán, hóa đơn, báo cáo | 🟡 Doing | **90%** |
-| **GĐ 7** | Hiệu năng và tối ưu truy vấn | 🟡 Doing | **80%** |
+| **GĐ 7** | Hiệu năng và tối ưu truy vấn | 🟢 Done | **100%** |
 | **GĐ 8** | Bảo mật và phân quyền | 🟡 Doing | **70%** |
-| **GĐ 9** | Kiểm thử tự động | 🟡 Doing | **60%** |
+| **GĐ 9** | Kiểm thử tự động | 🟡 Doing | **65%** |
 | **GĐ 10** | CI/CD và triển khai thật | 🟡 Doing | **55%** |
 
 ### 💡 Đánh giá hiện tại
@@ -83,7 +83,7 @@ Hệ thống đã có đầy đủ khung chức năng của một website bán �
 |---|---|---|---|
 | **Phase 1** | Siết bảo mật luồng tiền và dữ liệu user | `8.7`, `8.3`, `8.4`, `8.5`, `8.6`, `6.4` | `fix/security-hardening` |
 | **Phase 2** | Bảo vệ nghiệp vụ bằng test | `9.1`, `9.2`, `9.3`, `9.5`, `9.6`, `9.7`, `9.8` | `test/core-business-flows` |
-| **Phase 3** | Giảm độ trễ khi vận hành thật | `7.8`, `7.6`, `7.7`, `7.9`, `7.10` | `perf/performance-optimization` |
+| **Phase 3** | Giảm độ trễ khi vận hành thật | Hoàn tất nhóm cache, queue, related products và search | `perf/performance-optimization` |
 | **Phase 4** | Chuẩn hóa deploy và bàn giao | `10.4`, `10.5`, `10.6`, `10.7`, `10.8`, `10.9`, `10.10`, `10.12` | `docs/deployment-operations` |
 | **Phase 5** | Release ổn định | `10.11` | `release/v1.0.0` |
 
@@ -219,7 +219,7 @@ git commit -m "docs(deploy): add production environment checklist"
 | 7.7 | Cache dashboard admin | 🟢 | Dashboard cache gom vào service, TTL chuẩn 5 phút và dữ liệu realtime TTL 1 phút |
 | 7.8 | Queue gửi mail | 🟢 | Order confirmation/status mail dùng queue để giảm độ trễ request |
 | 7.9 | Tối ưu related products | 🟢 | Bỏ `inRandomOrder()`, ưu tiên cùng thương hiệu theo rating/review và fallback có giới hạn |
-| 7.10 | Tối ưu tìm kiếm | 🔴 | Scout/Meilisearch hoặc fulltext tùy deploy |
+| 7.10 | Tối ưu tìm kiếm | 🟢 | Tách ProductSearchService, hỗ trợ fulltext MySQL/MariaDB, fallback SQLite/test, tìm theo tên/mô tả/thương hiệu/SKU |
 
 ---
 
@@ -244,7 +244,7 @@ git commit -m "docs(deploy): add production environment checklist"
 
 | # | Hạng mục | Trạng thái | Ghi chú |
 |---|---|:---:|---|
-| 9.1 | Xóa/đổi ExampleTest mặc định | 🔴 | Test hiện tại chưa có giá trị thật |
+| 9.1 | Xóa/đổi ExampleTest mặc định | 🟢 | Đã thay bằng smoke test kiểm tra route cốt lõi được đăng ký |
 | 9.2 | Test InventoryService | 🟢 | Đã cover kiểm tra tồn kho, import, deduct, restore, adjust và rollback khi thiếu hàng |
 | 9.3 | Test OrderService | 🟢 | Đã cover tạo đơn COD/online, trừ kho, hủy đơn, hoàn kho và xác nhận thanh toán idempotent |
 | 9.4 | Test CouponService | 🟢 | Đã có test validate, calculate, record usage |
@@ -295,7 +295,7 @@ git commit -m "docs(deploy): add production environment checklist"
 
 | Mã | Việc | Lý do |
 |---|---|---|
-| **7.10** | Tối ưu search | Cần khi dữ liệu sản phẩm tăng |
+| **7.x** | Theo dõi hiệu năng thực tế sau deploy | Đánh giá thêm bằng log slow query và dữ liệu truy cập thật |
 
 ### Phase 4: Deploy (P1)
 
@@ -371,9 +371,11 @@ Xây dựng hệ thống thương mại điện tử bán điện thoại bằng
 | 23/07/2026 | Hoàn thành mục `9.2`: bổ sung test InventoryService cho import/deduct/restore/adjust |
 | 23/07/2026 | Hoàn thành mục `9.3`: bổ sung test OrderService cho COD/online checkout, cancel và stock deduction |
 | 23/07/2026 | Hoàn thành mục `9.6`: bổ sung feature test cho checkout process, tồn kho và coupon |
+| 24/07/2026 | Hoàn thành mục `7.7`: chuẩn hóa cache dashboard admin bằng service riêng |
 | 24/07/2026 | Hoàn thành mục `7.8`: chuyển email xác nhận đơn/cập nhật trạng thái sang queue |
 | 24/07/2026 | Hoàn thành mục `7.9`: tối ưu related products, bỏ random query nặng khi dữ liệu lớn |
-| 24/07/2026 | Hoàn thành mục `7.7`: chuẩn hóa cache dashboard admin bằng service riêng |
+| 24/07/2026 | Hoàn thành mục `7.10`: tối ưu tìm kiếm sản phẩm bằng service riêng, fulltext index production và test fallback |
+| 24/07/2026 | Hoàn thành mục `9.1`: thay ExampleTest mặc định bằng smoke test route có giá trị hơn |
 | 24/07/2026 | Hoàn thành mục `10.4`: thêm tài liệu deploy production `DEPLOYMENT.md` |
 
 ---
