@@ -48,7 +48,7 @@ class WishlistService
     public function getWishlist()
     {
         return Auth::user()->wishlists()
-            ->with(['variants.images', 'category', 'brand'])
+            ->with(['variants.images', 'brand'])
             ->withAvg('reviews', 'rating')
             ->withCount('reviews')
             ->get();
