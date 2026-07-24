@@ -27,7 +27,7 @@
 | **GĐ 5** | Quản trị vận hành shop | 🟢 Done | **100%** |
 | **GĐ 6** | Thanh toán, hóa đơn, báo cáo | 🟡 Doing | **90%** |
 | **GĐ 7** | Hiệu năng và tối ưu truy vấn | 🟢 Done | **100%** |
-| **GĐ 8** | Bảo mật và phân quyền | 🟡 Doing | **70%** |
+| **GĐ 8** | Bảo mật và phân quyền | 🟡 Doing | **80%** |
 | **GĐ 9** | Kiểm thử tự động | 🟡 Doing | **65%** |
 | **GĐ 10** | CI/CD và triển khai thật | 🟡 Doing | **55%** |
 
@@ -236,7 +236,7 @@ git commit -m "docs(deploy): add production environment checklist"
 | 8.7 | Coupon validation đầy đủ | 🟢 | Active, thời gian, tổng lượt, lượt/user, đơn tối thiểu, tính giảm giá server-side, chống ghi trùng usage theo order |
 | 8.8 | Idempotent payment callback | 🟢 | Đã có khóa order, payment record idempotent theo mã giao dịch và test service |
 | 8.9 | Không commit secret | 🟢 | `.env` ignore, dùng `.env.example` |
-| 8.10 | Kiểm tra file upload | 🔴 | Ràng buộc mime/size và lưu storage an toàn |
+| 8.10 | Kiểm tra file upload | 🟢 | Chuẩn hóa rule ảnh, bỏ SVG/GIF, giới hạn số lượng/kích thước và mã hóa lại WebP bằng tên ngẫu nhiên |
 
 ---
 
@@ -377,6 +377,7 @@ Xây dựng hệ thống thương mại điện tử bán điện thoại bằng
 | 24/07/2026 | Hoàn thành mục `7.10`: tối ưu tìm kiếm sản phẩm bằng service riêng, fulltext index production và test fallback |
 | 24/07/2026 | Hoàn thành mục `9.1`: thay ExampleTest mặc định bằng smoke test route có giá trị hơn |
 | 24/07/2026 | Hoàn thành mục `10.4`: thêm tài liệu deploy production `DEPLOYMENT.md` |
+| 24/07/2026 | Hoàn thành mục `8.10`: chuẩn hóa upload ảnh an toàn cho avatar, review, banner, brand và variant |
 
 ---
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Services\SecureImageUploadService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 
@@ -19,7 +20,7 @@ class BrandRequest extends FormRequest
         return [
             'name'      => ['required', 'string', 'max:255'],
             'slug'      => ['nullable', 'string', 'max:255', 'unique:brands,slug,' . $brandId],
-            'logo'      => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
+            'logo'      => SecureImageUploadService::validationRules(maxKilobytes: 2048),
             'is_active' => ['nullable', 'boolean'],
         ];
     }

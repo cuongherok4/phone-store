@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
+use App\Services\SecureImageUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -39,10 +40,10 @@ class ProfileController extends Controller
     /**
      * Cập nhật avatar.
      */
-    public function updateAvatar(Request $request)
+    public function updateAvatar(Request $request, SecureImageUploadService $imageUploadService)
     {
         $request->validate([
-            'avatar' => 'required|image|max:1024',
+            'avatar' => SecureImageUploadService::validationRules(required: true, maxKilobytes: 1024),
         ]);
 
         $user = Auth::user();
@@ -51,7 +52,7 @@ class ProfileController extends Controller
             Storage::disk('public')->delete($user->avatar);
         }
 
-        $path = $request->file('avatar')->store('avatars', 'public');
+        $path = $imageUploadService->storeWebp($request->file('avatar'), 'avatars', maxWidth: 512);
         $user->update(['avatar' => $path]);
 
         return back()->with('success', 'Cập nhật ảnh đại diện thành công!');

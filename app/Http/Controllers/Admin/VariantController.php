@@ -11,10 +11,10 @@ use App\Models\ProductVariant;
 use App\Models\VariantAttribute;
 use App\Models\VariantImage;
 use App\Services\HomepageCacheService;
+use App\Services\SecureImageUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Intervention\Image\Laravel\Facades\Image;
 
 class VariantController extends Controller
 {
@@ -105,15 +105,15 @@ class VariantController extends Controller
     }
 
     // Upload ảnh bổ sung
-    public function uploadImages(Request $request, int $id)
+    public function uploadImages(Request $request, int $id, SecureImageUploadService $imageUploadService)
     {
         $request->validate([
-            'images'   => 'required|array',
-            'images.*' => 'image|max:5120',
+            'images'   => 'required|array|max:10',
+            'images.*' => SecureImageUploadService::validationRules(maxKilobytes: 5120),
         ]);
 
         $variant = ProductVariant::findOrFail($id);
-        $this->handleImageUpload($variant, $request->file('images'), -1); // -1 = không set primary
+        $this->handleImageUpload($variant, $request->file('images'), -1, $imageUploadService); // -1 = không set primary
         app(HomepageCacheService::class)->flush();
 
         return redirect()->route('admin.products.variants.index', $variant->product_id)
@@ -165,18 +165,19 @@ class VariantController extends Controller
         }
     }
 
-    private function handleImageUpload(ProductVariant $variant, array $files, int $primaryIndex): void
+    private function handleImageUpload(
+        ProductVariant $variant,
+        array $files,
+        int $primaryIndex,
+        ?SecureImageUploadService $imageUploadService = null
+    ): void
     {
+        $imageUploadService ??= app(SecureImageUploadService::class);
         $hasPrimary = VariantImage::where('variant_id', $variant->id)
             ->where('is_primary', true)->exists();
 
         foreach ($files as $index => $file) {
-            // Resize bằng Intervention Image
-            $image = Image::read($file);
-            $image->scale(width: 800); // max width 800px, giữ tỉ lệ
-
-            $path = 'variants/' . $variant->id . '/' . uniqid() . '.webp';
-            Storage::disk('public')->put($path, $image->toWebp(85));
+            $path = $imageUploadService->storeWebp($file, 'variants/' . $variant->id, maxWidth: 800);
 
             $setPrimary = false;
             if (!$hasPrimary) {
