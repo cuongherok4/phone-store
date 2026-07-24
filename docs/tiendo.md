@@ -25,14 +25,14 @@
 | **GĐ 3** | Luồng mua hàng cho khách | 🟢 Done | **100%** |
 | **GĐ 4** | Tài khoản, đánh giá, yêu thích, thông báo | 🟢 Done | **100%** |
 | **GĐ 5** | Quản trị vận hành shop | 🟢 Done | **100%** |
-| **GĐ 6** | Thanh toán, hóa đơn, báo cáo | 🟡 Doing | **90%** |
+| **GĐ 6** | Thanh toán, hóa đơn, báo cáo | 🟢 Done | **100%** |
 | **GĐ 7** | Hiệu năng và tối ưu truy vấn | 🟢 Done | **100%** |
-| **GĐ 8** | Bảo mật và phân quyền | 🟡 Doing | **80%** |
+| **GĐ 8** | Bảo mật và phân quyền | 🟢 Done | **100%** |
 | **GĐ 9** | Kiểm thử tự động | 🟡 Doing | **65%** |
 | **GĐ 10** | CI/CD và triển khai thật | 🟡 Doing | **55%** |
 
 ### 💡 Đánh giá hiện tại
-Hệ thống đã có đầy đủ khung chức năng của một website bán điện thoại thực tế. Phần cần ưu tiên tiếp theo là **bảo mật luồng tiền**, **kiểm thử**, **tối ưu độ trễ**, **tài liệu deploy** và **quy trình vận hành** sau bàn giao.
+Hệ thống đã có đầy đủ khung chức năng của một website bán điện thoại thực tế. Phần cần ưu tiên tiếp theo là **kiểm thử tự động**, **CI/CD**, **tài liệu deploy**, **backup/rollback** và **quy trình vận hành** sau bàn giao.
 
 ---
 
@@ -201,8 +201,8 @@ git commit -m "docs(deploy): add production environment checklist"
 | 6.5 | In hóa đơn PDF | 🟢 | Admin in hóa đơn |
 | 6.6 | Export đơn hàng Excel | 🟢 | Phục vụ báo cáo vận hành |
 | 6.7 | Export tồn kho Excel | 🟢 | Phục vụ kiểm kho |
-| 6.8 | Email xác nhận đơn | 🟢 | Có Mailable, cần chuyển qua queue |
-| 6.9 | Email cập nhật trạng thái | 🟢 | Có Mailable, cần chuyển qua queue |
+| 6.8 | Email xác nhận đơn | 🟢 | Mailable đã chuyển sang queue để giảm độ trễ request |
+| 6.9 | Email cập nhật trạng thái | 🟢 | Mailable đã chuyển sang queue để giảm độ trễ request |
 
 ---
 
@@ -228,7 +228,7 @@ git commit -m "docs(deploy): add production environment checklist"
 | # | Hạng mục | Trạng thái | Ghi chú |
 |---|---|:---:|---|
 | 8.1 | Middleware admin | 🟢 | Đã có bảo vệ route admin |
-| 8.2 | Phân quyền theo role | 🟡 | Có Spatie, cần thống nhất dùng role/permission |
+| 8.2 | Phân quyền theo role | 🟢 | User dùng Spatie HasRoles, có seeder role/permission và fallback tương thích cột `users.role` |
 | 8.3 | Policy xem đơn hàng | 🟢 | Có `OrderPolicy::view`, khách chỉ xem đơn của mình, admin xem được mọi đơn |
 | 8.4 | Policy hủy đơn hàng | 🟢 | Có `OrderPolicy::cancel`, chỉ chủ đơn/admin hủy được đơn ở trạng thái hợp lệ |
 | 8.5 | Rate limit login | 🟢 | Giới hạn 5 lần sai/phút theo email + IP, đăng nhập đúng sẽ xóa bộ đếm |
@@ -276,33 +276,26 @@ git commit -m "docs(deploy): add production environment checklist"
 
 ## 🎯 Các Việc Ưu Tiên Tiếp Theo
 
-### Phase 1: Bảo Mật Luồng Tiền (P0)
+### Phase 1: Test Nghiệp Vụ Cốt Lõi (P0)
 
 | Mã | Việc | Lý do |
 |---|---|---|
-| **8.7** | Tách `CouponService` và siết validation | Liên quan trực tiếp đến tiền/giảm giá |
-| **8.3, 8.4** | Thêm policy cho order | Tránh lỗi bảo mật nghiêm trọng |
-| **8.5, 8.6** | Thêm rate limit login/checkout/coupon | Chống spam và abuse |
-| **6.4** | Xác nhận thanh toán online idempotent | Đã hoàn thành, tiếp tục kiểm thử sandbox gateway khi có credentials thật |
+| **9.5** | Test Cart flow | Bảo vệ add/update/remove/select item trước khi mở rộng checkout |
+| **9.7** | Test quyền xem đơn | Chứng minh khách không xem được dữ liệu đơn hàng của người khác |
+| **9.8** | CI chạy `php artisan test` | Đưa toàn bộ test nghiệp vụ vào GitHub Actions |
 
-### Phase 2: Test Nghiệp Vụ Cốt Lõi (P0)
-
-| Mã | Việc | Lý do |
-|---|---|---|
-| **9.2, 9.3, 9.6** | Viết test cho checkout và inventory | Bảo vệ luồng bán hàng cốt lõi |
-
-### Phase 3: Hiệu Năng (P1)
-
-| Mã | Việc | Lý do |
-|---|---|---|
-| **7.x** | Theo dõi hiệu năng thực tế sau deploy | Đánh giá thêm bằng log slow query và dữ liệu truy cập thật |
-
-### Phase 4: Deploy (P1)
+### Phase 2: Deploy Readiness (P1)
 
 | Mã | Việc | Lý do |
 |---|---|---|
 | **10.5** | Checklist `.env` production | Chuẩn hóa biến môi trường theo từng môi trường |
 | **10.6, 10.9, 10.10** | Chuẩn hóa backup/rollback | Cần trước khi deploy thật |
+
+### Phase 3: Vận Hành Sau Deploy (P1)
+
+| Mã | Việc | Lý do |
+|---|---|---|
+| **7.x, 8.x** | Theo dõi hiệu năng và bảo mật thực tế | Đánh giá thêm bằng log, audit và dữ liệu truy cập thật |
 
 ---
 
@@ -378,6 +371,7 @@ Xây dựng hệ thống thương mại điện tử bán điện thoại bằng
 | 24/07/2026 | Hoàn thành mục `9.1`: thay ExampleTest mặc định bằng smoke test route có giá trị hơn |
 | 24/07/2026 | Hoàn thành mục `10.4`: thêm tài liệu deploy production `DEPLOYMENT.md` |
 | 24/07/2026 | Hoàn thành mục `8.10`: chuẩn hóa upload ảnh an toàn cho avatar, review, banner, brand và variant |
+| 24/07/2026 | Hoàn thành mục `8.2`: chuẩn hóa role/permission bằng Spatie và giữ fallback tương thích dữ liệu cũ |
 
 ---
 

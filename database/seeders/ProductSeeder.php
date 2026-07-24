@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\Attribute;
 use App\Models\AttributeValue;
 use App\Models\Brand;
-use App\Models\Category;
 use App\Models\Inventory;
 use App\Models\Product;
 use App\Models\ProductVariant;
@@ -32,8 +31,6 @@ class ProductSeeder extends Seeder
 
         $apple    = Brand::where('slug', 'apple')->first();
         $samsung  = Brand::where('slug', 'samsung')->first();
-        $iphone   = Category::where('slug', 'dien-thoai-iphone')->first();
-        $android  = Category::where('slug', 'dien-thoai-android')->first();
         $warehouse = Warehouse::first();
 
         // ── Sản phẩm 1: iPhone 15 ──
@@ -41,7 +38,6 @@ class ProductSeeder extends Seeder
             'name'        => 'iPhone 15',
             'slug'        => 'iphone-15',
             'brand_id'    => $apple->id,
-            'category_id' => $iphone->id,
             'short_desc'  => 'iPhone 15 chip A16 Bionic, camera 48MP',
             'description' => 'iPhone 15 với chip A16 Bionic mạnh mẽ, camera chính 48MP, cổng USB-C.',
             'status'      => 1,
@@ -73,7 +69,6 @@ class ProductSeeder extends Seeder
             'name'        => 'Samsung Galaxy S24',
             'slug'        => 'samsung-galaxy-s24',
             'brand_id'    => $samsung->id,
-            'category_id' => $android->id,
             'short_desc'  => 'Galaxy S24 chip Snapdragon 8 Gen 3, màn hình 6.2 inch',
             'description' => 'Samsung Galaxy S24 với Snapdragon 8 Gen 3, camera 50MP, pin 4000mAh.',
             'status'      => 1,

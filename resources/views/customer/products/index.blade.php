@@ -148,7 +148,7 @@
                 </div>
 
                 {{-- Active Filters Tags --}}
-                @if(request()->hasAny(['category', 'brand', 'min_price', 'max_price', 'q']))
+                @if(request()->hasAny(['brand', 'min_price', 'max_price', 'q']))
                     <div class="flex flex-wrap gap-2 mb-4">
                         @if(request('q'))
                             <span class="inline-flex items-center gap-1.5 text-xs bg-brand-100 text-brand-700 px-3 py-1.5 rounded-full font-medium">

@@ -22,7 +22,6 @@ Route::redirect('/home', '/');
 Route::get('/san-pham',           [ProductController::class, 'index'])->name('customer.products.index');
 Route::get('/san-pham/{slug}',    [ProductController::class, 'show'])->name('customer.products.show');
 Route::get('/thuong-hieu/{slug}', [ProductController::class, 'byBrand'])->name('customer.products.byBrand');
-Route::get('/danh-muc/{slug}',    [ProductController::class, 'byCategory'])->name('customer.products.byCategory');
 Route::post('/ai/consult',        [AIController::class, 'consult'])->name('customer.ai.consult');
 
 // ===================== AUTH ROUTES =====================

@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\View;
 use App\Models\Brand;
 use App\Models\Order;
 use App\Models\Setting;
+use App\Models\User;
 use App\Policies\OrderPolicy;
 
 class AppServiceProvider extends ServiceProvider
@@ -29,6 +30,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(Order::class, OrderPolicy::class);
+
+        Gate::before(function (User $user) {
+            return $user->isAdmin() ? true : null;
+        });
 
         RateLimiter::for('checkout', function (Request $request) {
             return Limit::perMinute(6)->by($request->user()?->id ?: $request->ip());

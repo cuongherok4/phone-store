@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class UserController extends Controller
 {
@@ -13,7 +14,16 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
-        $query = User::where('role', 'customer');
+        $query = User::query()->where(function ($roleQuery) {
+            $roleQuery->where('role', 'customer');
+
+            if (
+                Schema::hasTable(config('permission.table_names.roles', 'roles'))
+                && Schema::hasTable(config('permission.table_names.model_has_roles', 'model_has_roles'))
+            ) {
+                $roleQuery->orWhereHas('roles', fn ($q) => $q->where('name', 'customer'));
+            }
+        });
 
         if ($request->filled('search')) {
             $query->where(function($q) use ($request) {

@@ -6,10 +6,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Schema;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, SoftDeletes;
+    use HasFactory, HasRoles, Notifiable, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -70,12 +72,28 @@ class User extends Authenticatable
     // ===================== HELPERS =====================
     public function isAdmin(): bool
     {
-        return $this->role === 'admin';
+        return $this->hasResolvedRole('admin');
     }
 
     public function isCustomer(): bool
     {
-        return $this->role === 'customer';
+        return $this->hasResolvedRole('customer');
+    }
+
+    private function hasResolvedRole(string $role): bool
+    {
+        if ($this->role === $role) {
+            return true;
+        }
+
+        if (
+            !Schema::hasTable(config('permission.table_names.roles', 'roles'))
+            || !Schema::hasTable(config('permission.table_names.model_has_roles', 'model_has_roles'))
+        ) {
+            return false;
+        }
+
+        return $this->hasRole($role);
     }
 
     /**
