@@ -10,7 +10,7 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        User::create([
+        $admin = User::create([
             'name'              => 'Admin',
             'email'             => 'admin@phonestore.vn',
             'password'          => Hash::make('password'),
@@ -19,7 +19,9 @@ class UserSeeder extends Seeder
             'email_verified_at' => now(),
         ]);
 
-        User::create([
+        $admin->assignRole('admin');
+
+        $customer = User::create([
             'name'              => 'Khách hàng mẫu',
             'email'             => 'customer@phonestore.vn',
             'password'          => Hash::make('password'),
@@ -27,5 +29,7 @@ class UserSeeder extends Seeder
             'role'              => 'customer',
             'email_verified_at' => now(),
         ]);
+
+        $customer->assignRole('customer');
     }
 }
