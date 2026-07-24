@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\ProductSearchService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -87,6 +88,6 @@ class Product extends Model
     public function scopeActive($query)  { return $query->where('status', 1)->whereNull('deleted_at'); }
     public function scopeSearch($query, $keyword)
     {
-        return $query->where('name', 'like', "%{$keyword}%");
+        return app(ProductSearchService::class)->apply($query, $keyword);
     }
 }
