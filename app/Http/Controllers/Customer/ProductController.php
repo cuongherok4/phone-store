@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Services\RelatedProductService;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
@@ -93,7 +94,7 @@ class ProductController extends Controller
     }
 
     // ─── Chi tiết sản phẩm ───────────────────────────────────────────────────────
-    public function show($slug)
+    public function show($slug, RelatedProductService $relatedProductService)
     {
         $product = Product::where('slug', $slug)
             ->where('status', 1)
@@ -190,19 +191,7 @@ class ProductController extends Controller
             $variantsData[] = $variantInfo;
         }
 
-        // Sản phẩm liên quan (loại trừ sản phẩm hiện tại)
-        $relatedProducts = Product::where('status', 1)
-            ->whereNull('deleted_at')
-            ->where('id', '!=', $product->id)
-            ->with([
-                'brand',
-                'variants' => fn ($q) => $q->where('is_active', true)
-                    ->orderBy('price', 'asc')
-                    ->with(['images' => fn ($imgQ) => $imgQ->orderBy('sort_order')]),
-            ])
-            ->inRandomOrder()
-            ->limit(4)
-            ->get();
+        $relatedProducts = $relatedProductService->getFor($product);
 
         // Kiểm tra xem user có thể đánh giá sản phẩm này không
         $canReview = false;
