@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Customer;
 
+use App\Mail\OrderConfirmation;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Coupon;
@@ -33,6 +34,7 @@ class CheckoutFlowTest extends TestCase
         Schema::dropIfExists('attribute_values');
         Schema::dropIfExists('product_variants');
         Schema::dropIfExists('products');
+        Schema::dropIfExists('order_items');
         Schema::dropIfExists('orders');
         Schema::dropIfExists('user_addresses');
         Schema::dropIfExists('brands');
@@ -64,6 +66,13 @@ class CheckoutFlowTest extends TestCase
             $table->string('payment_status')->default('UNPAID');
             $table->string('payment_method')->default('COD');
             $table->timestamps();
+        });
+
+        Schema::create('order_items', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('order_id');
+            $table->unsignedBigInteger('variant_id')->nullable();
+            $table->integer('quantity')->default(1);
         });
 
         Schema::create('products', function (Blueprint $table) {
@@ -137,6 +146,7 @@ class CheckoutFlowTest extends TestCase
         $response = $this->actingAs($user)->post(route('checkout.process'), $this->checkoutPayload('COD'));
 
         $response->assertRedirect(route('checkout.success', $order->id));
+        Mail::assertQueued(OrderConfirmation::class);
     }
 
     public function test_direct_buy_checkout_redirects_when_stock_is_not_enough(): void

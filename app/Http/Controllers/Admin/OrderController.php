@@ -87,7 +87,7 @@ class OrderController extends Controller
             // Gửi email cập nhật trạng thái
             try {
                 \Illuminate\Support\Facades\Mail::to($order->user->email)
-                    ->send(new \App\Mail\OrderStatusChanged($order, $newStatus));
+                    ->queue(new \App\Mail\OrderStatusChanged($order, $newStatus));
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::error("Mail error: " . $e->getMessage());
             }

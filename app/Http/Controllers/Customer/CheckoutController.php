@@ -228,7 +228,7 @@ class CheckoutController extends Controller
     {
         try {
             \Illuminate\Support\Facades\Mail::to($order->user->email)
-                ->send(new \App\Mail\OrderConfirmation($order));
+                ->queue(new \App\Mail\OrderConfirmation($order));
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error("Mail error: " . $e->getMessage());
         }
