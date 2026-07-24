@@ -216,7 +216,7 @@ git commit -m "docs(deploy): add production environment checklist"
 | 7.4 | Cache tổng tồn kho variant | 🟢 | `total_stock` |
 | 7.5 | Bỏ `withAvg/withCount` ở listing | 🟢 | Listing dùng cột cache |
 | 7.6 | Cache homepage | 🟢 | Cache banner, thương hiệu, sản phẩm mới/nổi bật; admin cập nhật dữ liệu sẽ tự xóa cache |
-| 7.7 | Cache dashboard admin | 🟡 | Có cache một phần, cần chuẩn hóa TTL |
+| 7.7 | Cache dashboard admin | 🟢 | Dashboard cache gom vào service, TTL chuẩn 5 phút và dữ liệu realtime TTL 1 phút |
 | 7.8 | Queue gửi mail | 🟢 | Order confirmation/status mail dùng queue để giảm độ trễ request |
 | 7.9 | Tối ưu related products | 🟢 | Bỏ `inRandomOrder()`, ưu tiên cùng thương hiệu theo rating/review và fallback có giới hạn |
 | 7.10 | Tối ưu tìm kiếm | 🔴 | Scout/Meilisearch hoặc fulltext tùy deploy |
@@ -295,7 +295,6 @@ git commit -m "docs(deploy): add production environment checklist"
 
 | Mã | Việc | Lý do |
 |---|---|---|
-| **7.7** | Chuẩn hóa cache dashboard | Cải thiện tốc độ khi có traffic admin |
 | **7.10** | Tối ưu search | Cần khi dữ liệu sản phẩm tăng |
 
 ### Phase 4: Deploy (P1)
@@ -374,6 +373,7 @@ Xây dựng hệ thống thương mại điện tử bán điện thoại bằng
 | 23/07/2026 | Hoàn thành mục `9.6`: bổ sung feature test cho checkout process, tồn kho và coupon |
 | 24/07/2026 | Hoàn thành mục `7.8`: chuyển email xác nhận đơn/cập nhật trạng thái sang queue |
 | 24/07/2026 | Hoàn thành mục `7.9`: tối ưu related products, bỏ random query nặng khi dữ liệu lớn |
+| 24/07/2026 | Hoàn thành mục `7.7`: chuẩn hóa cache dashboard admin bằng service riêng |
 
 ---
 
