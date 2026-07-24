@@ -26,7 +26,7 @@
 | **GĐ 4** | Tài khoản, đánh giá, yêu thích, thông báo | 🟢 Done | **100%** |
 | **GĐ 5** | Quản trị vận hành shop | 🟢 Done | **100%** |
 | **GĐ 6** | Thanh toán, hóa đơn, báo cáo | 🟡 Doing | **90%** |
-| **GĐ 7** | Hiệu năng và tối ưu truy vấn | 🟡 Doing | **70%** |
+| **GĐ 7** | Hiệu năng và tối ưu truy vấn | 🟡 Doing | **80%** |
 | **GĐ 8** | Bảo mật và phân quyền | 🟡 Doing | **70%** |
 | **GĐ 9** | Kiểm thử tự động | 🟡 Doing | **60%** |
 | **GĐ 10** | CI/CD và triển khai thật | 🟡 Doing | **45%** |
@@ -217,7 +217,7 @@ git commit -m "docs(deploy): add production environment checklist"
 | 7.5 | Bỏ `withAvg/withCount` ở listing | 🟢 | Listing dùng cột cache |
 | 7.6 | Cache homepage | 🟢 | Cache banner, thương hiệu, sản phẩm mới/nổi bật; admin cập nhật dữ liệu sẽ tự xóa cache |
 | 7.7 | Cache dashboard admin | 🟡 | Có cache một phần, cần chuẩn hóa TTL |
-| 7.8 | Queue gửi mail | 🔴 | Giảm độ trễ checkout |
+| 7.8 | Queue gửi mail | 🟢 | Order confirmation/status mail dùng queue để giảm độ trễ request |
 | 7.9 | Tối ưu related products | 🔴 | Tránh `inRandomOrder()` trực tiếp khi dữ liệu lớn |
 | 7.10 | Tối ưu tìm kiếm | 🔴 | Scout/Meilisearch hoặc fulltext tùy deploy |
 
@@ -295,8 +295,8 @@ git commit -m "docs(deploy): add production environment checklist"
 
 | Mã | Việc | Lý do |
 |---|---|---|
-| **7.8** | Chuyển email sang queue | Giảm độ trễ khi đặt hàng |
 | **7.7** | Chuẩn hóa cache dashboard | Cải thiện tốc độ khi có traffic admin |
+| **7.9** | Tối ưu related products | Giảm truy vấn nặng khi dữ liệu sản phẩm tăng |
 | **7.10** | Tối ưu search | Cần khi dữ liệu sản phẩm tăng |
 
 ### Phase 4: Deploy (P1)
@@ -373,6 +373,7 @@ Xây dựng hệ thống thương mại điện tử bán điện thoại bằng
 | 23/07/2026 | Hoàn thành mục `9.2`: bổ sung test InventoryService cho import/deduct/restore/adjust |
 | 23/07/2026 | Hoàn thành mục `9.3`: bổ sung test OrderService cho COD/online checkout, cancel và stock deduction |
 | 23/07/2026 | Hoàn thành mục `9.6`: bổ sung feature test cho checkout process, tồn kho và coupon |
+| 24/07/2026 | Hoàn thành mục `7.8`: chuyển email xác nhận đơn/cập nhật trạng thái sang queue |
 
 ---
 
