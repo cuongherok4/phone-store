@@ -29,7 +29,7 @@
 | **GĐ 7** | Hiệu năng và tối ưu truy vấn | 🟡 Doing | **80%** |
 | **GĐ 8** | Bảo mật và phân quyền | 🟡 Doing | **70%** |
 | **GĐ 9** | Kiểm thử tự động | 🟡 Doing | **60%** |
-| **GĐ 10** | CI/CD và triển khai thật | 🟡 Doing | **45%** |
+| **GĐ 10** | CI/CD và triển khai thật | 🟡 Doing | **55%** |
 
 ### 💡 Đánh giá hiện tại
 Hệ thống đã có đầy đủ khung chức năng của một website bán điện thoại thực tế. Phần cần ưu tiên tiếp theo là **bảo mật luồng tiền**, **kiểm thử**, **tối ưu độ trễ**, **tài liệu deploy** và **quy trình vận hành** sau bàn giao.
@@ -262,7 +262,7 @@ git commit -m "docs(deploy): add production environment checklist"
 | 10.1 | GitHub Actions CI | 🟢 | PHP check, route list, frontend build |
 | 10.2 | Build frontend production | 🟢 | `npm run build` |
 | 10.3 | Quy trình branch | 🟢 | `main`, `develop`, `feature/*`, `fix/*`, `hotfix/*` |
-| 10.4 | Tài liệu deploy | 🔴 | Cần `DEPLOYMENT.md` |
+| 10.4 | Tài liệu deploy | 🟢 | Có `DEPLOYMENT.md` cho server, `.env`, migrate, queue, smoke test và rollback |
 | 10.5 | Checklist `.env` production | 🔴 | APP_ENV, APP_DEBUG, DB, MAIL, PAYMENT |
 | 10.6 | Quy trình migrate production | 🔴 | Backup trước migrate, rollback khi lỗi |
 | 10.7 | Queue worker | 🔴 | Cần hướng dẫn Supervisor/systemd |
@@ -301,7 +301,7 @@ git commit -m "docs(deploy): add production environment checklist"
 
 | Mã | Việc | Lý do |
 |---|---|---|
-| **10.4, 10.5** | Viết `DEPLOYMENT.md` và checklist `.env` | Cần cho hệ thống đem bán/bàn giao |
+| **10.5** | Checklist `.env` production | Chuẩn hóa biến môi trường theo từng môi trường |
 | **10.6, 10.9, 10.10** | Chuẩn hóa backup/rollback | Cần trước khi deploy thật |
 
 ---
@@ -374,6 +374,7 @@ Xây dựng hệ thống thương mại điện tử bán điện thoại bằng
 | 24/07/2026 | Hoàn thành mục `7.8`: chuyển email xác nhận đơn/cập nhật trạng thái sang queue |
 | 24/07/2026 | Hoàn thành mục `7.9`: tối ưu related products, bỏ random query nặng khi dữ liệu lớn |
 | 24/07/2026 | Hoàn thành mục `7.7`: chuẩn hóa cache dashboard admin bằng service riêng |
+| 24/07/2026 | Hoàn thành mục `10.4`: thêm tài liệu deploy production `DEPLOYMENT.md` |
 
 ---
 
