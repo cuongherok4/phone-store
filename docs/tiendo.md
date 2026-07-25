@@ -267,7 +267,7 @@ git commit -m "docs(deploy): add production environment checklist"
 | 10.6 | Quy trình migrate production | 🟢 | Có runbook pre-check, backup gate, migrate, verify, rollback và fix-forward |
 | 10.7 | Queue worker | 🔴 | Cần hướng dẫn Supervisor/systemd |
 | 10.8 | Scheduler | 🔴 | Cần cron cho Laravel schedule |
-| 10.9 | Backup database | 🔴 | Dump DB theo ngày/tuần |
+| 10.9 | Backup database | 🟢 | Có runbook backup định kỳ, cron, retention, off-server copy, verify và restore drill |
 | 10.10 | Backup uploaded files | 🔴 | Storage/public uploads |
 | 10.11 | Release từ `develop` sang `main` | 🔴 | Chỉ merge khi CI xanh và đã review |
 | 10.12 | Tài liệu bàn giao khách hàng | 🔴 | Tài khoản admin, cách vận hành, cách backup |
@@ -286,7 +286,7 @@ git commit -m "docs(deploy): add production environment checklist"
 
 | Mã | Việc | Lý do |
 |---|---|---|
-| **10.9, 10.10** | Chuẩn hóa backup định kỳ | Tách từ quy trình migrate sang vận hành hằng ngày/tuần |
+| **10.10** | Backup uploaded files | Bổ sung backup ảnh sản phẩm/banner/avatar/review ngoài database |
 
 ### Phase 3: Vận Hành Sau Deploy (P1)
 
@@ -374,6 +374,7 @@ Xây dựng hệ thống thương mại điện tử bán điện thoại bằng
 | 25/07/2026 | Hoàn thành mục `9.8`: bật GitHub Actions chạy `php artisan test` cho push/PR |
 | 25/07/2026 | Hoàn thành mục `10.5`: chuẩn hóa checklist `.env` production và mẫu `.env.example` |
 | 25/07/2026 | Hoàn thành mục `10.6`: bổ sung runbook migrate production có backup gate, verify và rollback/fix-forward |
+| 25/07/2026 | Hoàn thành mục `10.9`: bổ sung runbook backup database định kỳ, verify, retention và restore drill |
 
 ---
 
