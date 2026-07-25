@@ -28,7 +28,7 @@
 | **GĐ 6** | Thanh toán, hóa đơn, báo cáo | 🟢 Done | **100%** |
 | **GĐ 7** | Hiệu năng và tối ưu truy vấn | 🟢 Done | **100%** |
 | **GĐ 8** | Bảo mật và phân quyền | 🟢 Done | **100%** |
-| **GĐ 9** | Kiểm thử tự động | 🟡 Doing | **85%** |
+| **GĐ 9** | Kiểm thử tự động | 🟢 Done | **100%** |
 | **GĐ 10** | CI/CD và triển khai thật | 🟡 Doing | **55%** |
 
 ### 💡 Đánh giá hiện tại
@@ -251,7 +251,7 @@ git commit -m "docs(deploy): add production environment checklist"
 | 9.5 | Test Cart flow | 🟢 | Đã cover add, cộng dồn quantity, chặn vượt tồn kho, update, remove, toggle item và toggle all |
 | 9.6 | Test Checkout flow | 🟢 | Đã có feature test cho đặt đơn COD, chặn thiếu tồn kho và check coupon server-side |
 | 9.7 | Test quyền xem đơn | 🟢 | Feature test route `orders.show`: chủ đơn xem được, khách khác bị 403 |
-| 9.8 | CI chạy `php artisan test` | 🔴 | Bật sau khi schema test ổn định |
+| 9.8 | CI chạy `php artisan test` | 🟢 | GitHub Actions chạy toàn bộ test suite khi push/PR vào `develop` và `main` |
 
 ---
 
@@ -259,7 +259,7 @@ git commit -m "docs(deploy): add production environment checklist"
 
 | # | Hạng mục | Trạng thái | Ghi chú |
 |---|---|:---:|---|
-| 10.1 | GitHub Actions CI | 🟢 | PHP check, route list, frontend build |
+| 10.1 | GitHub Actions CI | 🟢 | PHP syntax, route list, `php artisan test`, frontend build |
 | 10.2 | Build frontend production | 🟢 | `npm run build` |
 | 10.3 | Quy trình branch | 🟢 | `main`, `develop`, `feature/*`, `fix/*`, `hotfix/*` |
 | 10.4 | Tài liệu deploy | 🟢 | Có `DEPLOYMENT.md` cho server, `.env`, migrate, queue, smoke test và rollback |
@@ -280,7 +280,7 @@ git commit -m "docs(deploy): add production environment checklist"
 
 | Mã | Việc | Lý do |
 |---|---|---|
-| **9.8** | CI chạy `php artisan test` | Đưa toàn bộ test nghiệp vụ vào GitHub Actions |
+| - | Hoàn thành | Giai đoạn 9 đã có test nghiệp vụ và CI chạy tự động |
 
 ### Phase 2: Deploy Readiness (P1)
 
@@ -372,6 +372,7 @@ Xây dựng hệ thống thương mại điện tử bán điện thoại bằng
 | 24/07/2026 | Hoàn thành mục `8.2`: chuẩn hóa role/permission bằng Spatie và giữ fallback tương thích dữ liệu cũ |
 | 25/07/2026 | Hoàn thành mục `9.7`: bổ sung feature test quyền xem chi tiết đơn hàng |
 | 25/07/2026 | Hoàn thành mục `9.5`: bổ sung test CartService cho add/update/remove/select item |
+| 25/07/2026 | Hoàn thành mục `9.8`: bật GitHub Actions chạy `php artisan test` cho push/PR |
 
 ---
 
