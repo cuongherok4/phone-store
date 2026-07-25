@@ -110,6 +110,8 @@ chown -R www-data:www-data storage bootstrap/cache
 
 ## 6. Backup trước migrate
 
+Quy trình migrate production chi tiết nằm tại [`docs/PRODUCTION_MIGRATION_RUNBOOK.md`](docs/PRODUCTION_MIGRATION_RUNBOOK.md). Trước khi deploy thật, dùng runbook đó làm checklist chính.
+
 Luôn backup database trước khi chạy migration production:
 
 ```bash
@@ -123,6 +125,8 @@ tar -czf backups/storage_public_$(date +%F_%H%M%S).tar.gz storage/app/public
 ```
 
 ## 7. Chạy migrate và optimize
+
+Chỉ chạy bước này sau khi backup đã verify thành công và migration mới đã được phân loại rủi ro.
 
 ```bash
 php artisan down
@@ -246,7 +250,7 @@ php artisan queue:restart
 php artisan up
 ```
 
-Chỉ rollback migration khi migration đó có `down()` an toàn và đã xác nhận không làm mất dữ liệu mới. Nếu migration ảnh hưởng dữ liệu vận hành, ưu tiên hotfix forward thay vì rollback.
+Chỉ rollback migration khi migration đó có `down()` an toàn và đã xác nhận không làm mất dữ liệu mới. Nếu migration ảnh hưởng dữ liệu vận hành, ưu tiên hotfix forward theo [`docs/PRODUCTION_MIGRATION_RUNBOOK.md`](docs/PRODUCTION_MIGRATION_RUNBOOK.md).
 
 ## 12. Giám sát vận hành
 
