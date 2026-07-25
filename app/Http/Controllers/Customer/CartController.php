@@ -7,11 +7,6 @@ use App\Models\ProductVariant;
 use App\Services\CartService;
 use Illuminate\Http\Request;
 
-/**
- * CartController — Stub cho 3.2
- * Logic đầy đủ (CartService, merge guest cart, validate stock) sẽ hoàn thiện ở mục 3.3.
- * Hiện tại: lưu giỏ hàng vào Session, hỗ trợ cả guest và user.
- */
 class CartController extends Controller
 {
     protected $cartService;
