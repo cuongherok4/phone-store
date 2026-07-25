@@ -28,7 +28,7 @@
 | **GĐ 6** | Thanh toán, hóa đơn, báo cáo | 🟢 Done | **100%** |
 | **GĐ 7** | Hiệu năng và tối ưu truy vấn | 🟢 Done | **100%** |
 | **GĐ 8** | Bảo mật và phân quyền | 🟢 Done | **100%** |
-| **GĐ 9** | Kiểm thử tự động | 🟡 Doing | **65%** |
+| **GĐ 9** | Kiểm thử tự động | 🟡 Doing | **85%** |
 | **GĐ 10** | CI/CD và triển khai thật | 🟡 Doing | **55%** |
 
 ### 💡 Đánh giá hiện tại
@@ -248,9 +248,9 @@ git commit -m "docs(deploy): add production environment checklist"
 | 9.2 | Test InventoryService | 🟢 | Đã cover kiểm tra tồn kho, import, deduct, restore, adjust và rollback khi thiếu hàng |
 | 9.3 | Test OrderService | 🟢 | Đã cover tạo đơn COD/online, trừ kho, hủy đơn, hoàn kho và xác nhận thanh toán idempotent |
 | 9.4 | Test CouponService | 🟢 | Đã có test validate, calculate, record usage |
-| 9.5 | Test Cart flow | 🔴 | Add/update/remove/select items |
+| 9.5 | Test Cart flow | 🟢 | Đã cover add, cộng dồn quantity, chặn vượt tồn kho, update, remove, toggle item và toggle all |
 | 9.6 | Test Checkout flow | 🟢 | Đã có feature test cho đặt đơn COD, chặn thiếu tồn kho và check coupon server-side |
-| 9.7 | Test quyền xem đơn | 🔴 | Chống xem đơn người khác |
+| 9.7 | Test quyền xem đơn | 🟢 | Feature test route `orders.show`: chủ đơn xem được, khách khác bị 403 |
 | 9.8 | CI chạy `php artisan test` | 🔴 | Bật sau khi schema test ổn định |
 
 ---
@@ -280,8 +280,6 @@ git commit -m "docs(deploy): add production environment checklist"
 
 | Mã | Việc | Lý do |
 |---|---|---|
-| **9.5** | Test Cart flow | Bảo vệ add/update/remove/select item trước khi mở rộng checkout |
-| **9.7** | Test quyền xem đơn | Chứng minh khách không xem được dữ liệu đơn hàng của người khác |
 | **9.8** | CI chạy `php artisan test` | Đưa toàn bộ test nghiệp vụ vào GitHub Actions |
 
 ### Phase 2: Deploy Readiness (P1)
@@ -372,6 +370,8 @@ Xây dựng hệ thống thương mại điện tử bán điện thoại bằng
 | 24/07/2026 | Hoàn thành mục `10.4`: thêm tài liệu deploy production `DEPLOYMENT.md` |
 | 24/07/2026 | Hoàn thành mục `8.10`: chuẩn hóa upload ảnh an toàn cho avatar, review, banner, brand và variant |
 | 24/07/2026 | Hoàn thành mục `8.2`: chuẩn hóa role/permission bằng Spatie và giữ fallback tương thích dữ liệu cũ |
+| 25/07/2026 | Hoàn thành mục `9.7`: bổ sung feature test quyền xem chi tiết đơn hàng |
+| 25/07/2026 | Hoàn thành mục `9.5`: bổ sung test CartService cho add/update/remove/select item |
 
 ---
 
