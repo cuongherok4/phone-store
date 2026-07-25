@@ -263,7 +263,7 @@ git commit -m "docs(deploy): add production environment checklist"
 | 10.2 | Build frontend production | 🟢 | `npm run build` |
 | 10.3 | Quy trình branch | 🟢 | `main`, `develop`, `feature/*`, `fix/*`, `hotfix/*` |
 | 10.4 | Tài liệu deploy | 🟢 | Có `DEPLOYMENT.md` cho server, `.env`, migrate, queue, smoke test và rollback |
-| 10.5 | Checklist `.env` production | 🔴 | APP_ENV, APP_DEBUG, DB, MAIL, PAYMENT |
+| 10.5 | Checklist `.env` production | 🟢 | Có checklist theo nhóm app, DB, queue, mail, payment, OAuth, storage, logging và cập nhật `.env.example` |
 | 10.6 | Quy trình migrate production | 🔴 | Backup trước migrate, rollback khi lỗi |
 | 10.7 | Queue worker | 🔴 | Cần hướng dẫn Supervisor/systemd |
 | 10.8 | Scheduler | 🔴 | Cần cron cho Laravel schedule |
@@ -286,7 +286,6 @@ git commit -m "docs(deploy): add production environment checklist"
 
 | Mã | Việc | Lý do |
 |---|---|---|
-| **10.5** | Checklist `.env` production | Chuẩn hóa biến môi trường theo từng môi trường |
 | **10.6, 10.9, 10.10** | Chuẩn hóa backup/rollback | Cần trước khi deploy thật |
 
 ### Phase 3: Vận Hành Sau Deploy (P1)
@@ -373,6 +372,7 @@ Xây dựng hệ thống thương mại điện tử bán điện thoại bằng
 | 25/07/2026 | Hoàn thành mục `9.7`: bổ sung feature test quyền xem chi tiết đơn hàng |
 | 25/07/2026 | Hoàn thành mục `9.5`: bổ sung test CartService cho add/update/remove/select item |
 | 25/07/2026 | Hoàn thành mục `9.8`: bật GitHub Actions chạy `php artisan test` cho push/PR |
+| 25/07/2026 | Hoàn thành mục `10.5`: chuẩn hóa checklist `.env` production và mẫu `.env.example` |
 
 ---
 
