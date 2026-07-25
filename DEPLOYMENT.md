@@ -179,7 +179,23 @@ Sau khi đổi code:
 php artisan queue:restart
 ```
 
-## 9. Nginx mẫu
+## 9. Scheduler
+
+Production nên cấu hình Laravel Scheduler để sẵn sàng chạy tác vụ định kỳ. Runbook chi tiết nằm tại [`docs/SCHEDULER_RUNBOOK.md`](docs/SCHEDULER_RUNBOOK.md).
+
+Cron mẫu:
+
+```cron
+* * * * * cd /var/www/phone-store && php artisan schedule:run >> storage/logs/scheduler.log 2>&1
+```
+
+Kiểm tra:
+
+```bash
+php artisan schedule:list
+```
+
+## 10. Nginx mẫu
 
 ```nginx
 server {
@@ -210,7 +226,7 @@ server {
 
 Sau khi cấu hình SSL, buộc HTTPS bằng Nginx hoặc load balancer.
 
-## 10. Smoke test sau deploy
+## 11. Smoke test sau deploy
 
 Kiểm tra nhanh sau mỗi lần deploy:
 
@@ -232,7 +248,7 @@ Checklist trình duyệt:
 | Admin dashboard | Thống kê hiển thị, cache không lỗi |
 | Admin hủy đơn | Hoàn kho đúng nếu đơn đã trừ tồn |
 
-## 11. Rollback nhanh
+## 12. Rollback nhanh
 
 Nếu lỗi sau deploy:
 
@@ -252,7 +268,7 @@ php artisan up
 
 Chỉ rollback migration khi migration đó có `down()` an toàn và đã xác nhận không làm mất dữ liệu mới. Nếu migration ảnh hưởng dữ liệu vận hành, ưu tiên hotfix forward theo [`docs/PRODUCTION_MIGRATION_RUNBOOK.md`](docs/PRODUCTION_MIGRATION_RUNBOOK.md).
 
-## 12. Giám sát vận hành
+## 13. Giám sát vận hành
 
 Theo dõi các điểm sau:
 
@@ -260,6 +276,7 @@ Theo dõi các điểm sau:
 - `storage/logs/worker.log`
 - `php artisan queue:failed`
 - Queue worker theo [`docs/QUEUE_WORKER_RUNBOOK.md`](docs/QUEUE_WORKER_RUNBOOK.md)
+- Scheduler theo [`docs/SCHEDULER_RUNBOOK.md`](docs/SCHEDULER_RUNBOOK.md)
 - Backup database theo [`docs/DATABASE_BACKUP_RUNBOOK.md`](docs/DATABASE_BACKUP_RUNBOOK.md)
 - Backup uploaded files theo [`docs/UPLOAD_BACKUP_RUNBOOK.md`](docs/UPLOAD_BACKUP_RUNBOOK.md)
 - Dung lượng disk cho upload và log
@@ -267,7 +284,7 @@ Theo dõi các điểm sau:
 - Tỷ lệ callback thanh toán lỗi
 - Email queue bị tồn đọng
 
-## 13. Quy tắc release
+## 14. Quy tắc release
 
 - `main` chỉ nhận code đã review và đã pass CI.
 - Không deploy trực tiếp từ feature branch lên production.
