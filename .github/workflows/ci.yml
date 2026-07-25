@@ -10,10 +10,15 @@ on:
       - main
       - develop
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   php:
     name: PHP Checks
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout code
@@ -25,6 +30,13 @@ jobs:
           php-version: '8.2'
           extensions: bcmath, ctype, dom, fileinfo, gd, mbstring, pdo, pdo_sqlite, tokenizer, xml, zip
           coverage: none
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache/files
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
 
       - name: Validate composer.json
         run: composer validate --no-check-publish
@@ -44,9 +56,13 @@ jobs:
       - name: Check routes
         run: php artisan route:list
 
+      - name: Run automated tests
+        run: php artisan test
+
   frontend:
     name: Frontend Build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout code
