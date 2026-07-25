@@ -148,7 +148,7 @@ Chỉ chạy seed production khi đã kiểm tra seeder không ghi đè dữ li�
 
 ## 8. Queue worker
 
-Email xác nhận đơn hàng và email cập nhật trạng thái đang chạy qua queue. Production bắt buộc có queue worker.
+Email xác nhận đơn hàng và email cập nhật trạng thái đang chạy qua queue. Production bắt buộc có queue worker. Runbook chi tiết nằm tại [`docs/QUEUE_WORKER_RUNBOOK.md`](docs/QUEUE_WORKER_RUNBOOK.md).
 
 Chạy thử thủ công:
 
@@ -259,6 +259,7 @@ Theo dõi các điểm sau:
 - `storage/logs/laravel.log`
 - `storage/logs/worker.log`
 - `php artisan queue:failed`
+- Queue worker theo [`docs/QUEUE_WORKER_RUNBOOK.md`](docs/QUEUE_WORKER_RUNBOOK.md)
 - Backup database theo [`docs/DATABASE_BACKUP_RUNBOOK.md`](docs/DATABASE_BACKUP_RUNBOOK.md)
 - Backup uploaded files theo [`docs/UPLOAD_BACKUP_RUNBOOK.md`](docs/UPLOAD_BACKUP_RUNBOOK.md)
 - Dung lượng disk cho upload và log
