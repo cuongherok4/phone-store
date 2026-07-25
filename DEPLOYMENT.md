@@ -16,7 +16,7 @@ Khuyến nghị tối thiểu:
 | Node.js | 20+ |
 | Composer | 2.x |
 | Queue | Laravel database queue hoặc Redis |
-| Storage | Có backup cho database và `storage/app/public`; xem thêm [`docs/DATABASE_BACKUP_RUNBOOK.md`](docs/DATABASE_BACKUP_RUNBOOK.md) |
+| Storage | Có backup cho database và `storage/app/public`; xem thêm [`docs/DATABASE_BACKUP_RUNBOOK.md`](docs/DATABASE_BACKUP_RUNBOOK.md), [`docs/UPLOAD_BACKUP_RUNBOOK.md`](docs/UPLOAD_BACKUP_RUNBOOK.md) |
 
 ## 2. Chuẩn bị code
 
@@ -260,6 +260,7 @@ Theo dõi các điểm sau:
 - `storage/logs/worker.log`
 - `php artisan queue:failed`
 - Backup database theo [`docs/DATABASE_BACKUP_RUNBOOK.md`](docs/DATABASE_BACKUP_RUNBOOK.md)
+- Backup uploaded files theo [`docs/UPLOAD_BACKUP_RUNBOOK.md`](docs/UPLOAD_BACKUP_RUNBOOK.md)
 - Dung lượng disk cho upload và log
 - Database slow query log nếu traffic tăng
 - Tỷ lệ callback thanh toán lỗi
