@@ -44,6 +44,8 @@ cp .env.example .env
 php artisan key:generate
 ```
 
+Checklist chi tiết theo từng nhóm biến nằm tại [`docs/PRODUCTION_ENV_CHECKLIST.md`](docs/PRODUCTION_ENV_CHECKLIST.md). Phải hoàn tất checklist này trước khi chạy migrate hoặc nhận đơn hàng thật.
+
 Các biến bắt buộc cần kiểm tra:
 
 ```env
