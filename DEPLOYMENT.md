@@ -291,3 +291,4 @@ Theo dõi các điểm sau:
 - Trước deploy phải có backup DB.
 - Sau deploy phải chạy smoke test.
 - Mọi thay đổi payment, coupon, inventory, order phải có test liên quan trước khi merge.
+- Khi bàn giao khách hàng, dùng [`docs/CUSTOMER_HANDOVER.md`](docs/CUSTOMER_HANDOVER.md) làm checklist chính.

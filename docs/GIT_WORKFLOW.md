@@ -44,7 +44,7 @@ git commit -m "fix(inventory): use RETURN type for order cancellation restore"
 git commit -m "perf(product): cache product listing with Redis"
 git commit -m "test(order): add unit tests for OrderService::createFromCart"
 git commit -m "refactor(checkout): extract validation to CheckoutRequest"
-git commit -m "docs: update TIENDO.md progress"
+git commit -m "docs: update tiendo.md progress"
 ```
 
 ---

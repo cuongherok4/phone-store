@@ -112,6 +112,12 @@ banners, settings
 
 ## 🚀 Cài Đặt & Chạy
 
+Tài liệu production và bàn giao:
+
+- [`DEPLOYMENT.md`](DEPLOYMENT.md)
+- [`docs/CUSTOMER_HANDOVER.md`](docs/CUSTOMER_HANDOVER.md)
+- [`docs/PRODUCTION_ENV_CHECKLIST.md`](docs/PRODUCTION_ENV_CHECKLIST.md)
+
 ### Yêu Cầu Hệ Thống
 - PHP >= 8.2
 - Composer
@@ -237,10 +243,11 @@ php artisan test tests/Unit/Services/OrderServiceTest.php
 
 | File | Nội dung |
 |------|----------|
-| [docs/TIENDO.md](docs/TIENDO.md) | Tiến độ dự án chi tiết |
+| [DEPLOYMENT.md](DEPLOYMENT.md) | Hướng dẫn deploy production |
+| [docs/CUSTOMER_HANDOVER.md](docs/CUSTOMER_HANDOVER.md) | Checklist bàn giao khách hàng |
+| [docs/tiendo.md](docs/tiendo.md) | Tiến độ dự án chi tiết |
 | [docs/OPTIMIZATION.md](docs/OPTIMIZATION.md) | Kế hoạch tối ưu hệ thống |
 | [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) | Git Flow & Commit Convention |
-| [docs/setup.md](docs/setup.md) | Hướng dẫn cài đặt chi tiết |
 
 ---
 

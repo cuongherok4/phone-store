@@ -270,7 +270,7 @@ git commit -m "docs(deploy): add production environment checklist"
 | 10.9 | Backup database | 🟢 | Có runbook backup định kỳ, cron, retention, off-server copy, verify và restore drill |
 | 10.10 | Backup uploaded files | 🟢 | Có runbook backup `storage/app/public`, cron, off-server copy, verify và restore drill |
 | 10.11 | Release từ `develop` sang `main` | 🔴 | Chỉ merge khi CI xanh và đã review |
-| 10.12 | Tài liệu bàn giao khách hàng | 🔴 | Tài khoản admin, cách vận hành, cách backup |
+| 10.12 | Tài liệu bàn giao khách hàng | 🟢 | Có checklist bàn giao tài khoản, secret, vận hành, deploy, smoke test, backup và xử lý sự cố |
 
 ---
 
@@ -286,7 +286,7 @@ git commit -m "docs(deploy): add production environment checklist"
 
 | Mã | Việc | Lý do |
 |---|---|---|
-| **10.12** | Tài liệu bàn giao khách hàng | Gom tài khoản, vận hành, backup, queue, scheduler và quy trình xử lý lỗi |
+| **10.11** | Release từ `develop` sang `main` | Làm cuối cùng sau khi tài liệu bàn giao đã đủ và CI xanh |
 
 ### Phase 3: Vận Hành Sau Deploy (P1)
 
@@ -378,6 +378,7 @@ Xây dựng hệ thống thương mại điện tử bán điện thoại bằng
 | 25/07/2026 | Hoàn thành mục `10.10`: bổ sung runbook backup uploaded files, verify, off-server copy và restore drill |
 | 25/07/2026 | Hoàn thành mục `10.7`: bổ sung runbook queue worker bằng Supervisor/systemd, monitor và retry failed jobs |
 | 25/07/2026 | Hoàn thành mục `10.8`: bổ sung runbook Laravel Scheduler bằng cron/systemd timer và monitoring |
+| 26/07/2026 | Hoàn thành mục `10.12`: bổ sung tài liệu bàn giao khách hàng, checklist vận hành, smoke test và xử lý sự cố |
 
 ---
 
