@@ -57,6 +57,6 @@ return new class extends Migration
               AND INDEX_NAME   = ?
         ", [$table, $indexName]);
 
-        return (int) $result[0]->cnt > 0;
+        return (int) ($result[0]->cnt ?? 0) > 0;
     }
 };
