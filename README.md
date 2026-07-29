@@ -240,7 +240,7 @@ php artisan test tests/Unit/Services/OrderServiceTest.php
 | [docs/TIENDO.md](docs/TIENDO.md) | Tiến độ dự án chi tiết |
 | [docs/OPTIMIZATION.md](docs/OPTIMIZATION.md) | Kế hoạch tối ưu hệ thống |
 | [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) | Git Flow & Commit Convention |
-| [docs/setup.md](docs/setup.md) | Hướng dẫn cài đặt chi tiết |
+| [DEPLOYMENT.md](DEPLOYMENT.md) | Hướng dẫn triển khai production |
 
 ---
 
