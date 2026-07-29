@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class Cart extends Model
 {
@@ -14,16 +15,33 @@ class Cart extends Model
 
     public function getTotalAttribute(): float
     {
-        return $this->items->where('is_selected', true)->sum(fn($item) => $item->variant->price * $item->quantity);
+        if ($this->relationLoaded('items') && $this->items->every(fn ($item) => $item->relationLoaded('variant'))) {
+            return (float) $this->items
+                ->where('is_selected', true)
+                ->sum(fn ($item) => $item->variant->price * $item->quantity);
+        }
+
+        return (float) $this->items()
+            ->where('is_selected', true)
+            ->join('product_variants', 'cart_items.variant_id', '=', 'product_variants.id')
+            ->sum(DB::raw('cart_items.quantity * product_variants.price'));
     }
 
     public function getItemCountAttribute(): int
     {
-        return $this->items->sum('quantity');
+        if ($this->relationLoaded('items')) {
+            return (int) $this->items->sum('quantity');
+        }
+
+        return (int) $this->items()->sum('quantity');
     }
 
     public function getSelectedItemCountAttribute(): int
     {
-        return $this->items->where('is_selected', true)->sum('quantity');
+        if ($this->relationLoaded('items')) {
+            return (int) $this->items->where('is_selected', true)->sum('quantity');
+        }
+
+        return (int) $this->items()->where('is_selected', true)->sum('quantity');
     }
 }

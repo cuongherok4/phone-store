@@ -8,6 +8,7 @@ use App\Models\ProductVariant;
 use App\Models\User;
 use App\Services\CartService;
 use App\Services\InventoryService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Mockery;
@@ -146,7 +147,7 @@ class CartServiceTest extends TestCase
 
         $this->inventoryService
             ->shouldReceive('getStock')
-            ->times(3)
+            ->twice()
             ->with($variant->id)
             ->andReturn(5);
 
@@ -208,6 +209,66 @@ class CartServiceTest extends TestCase
 
         $this->service->toggleAll(true);
         $this->assertSame(2, CartItem::where('is_selected', true)->count());
+    }
+
+    public function test_it_rejects_updating_an_item_from_another_cart(): void
+    {
+        $variant = $this->createVariant();
+        $otherUser = User::create([
+            'name' => 'Other',
+            'email' => 'other@example.com',
+            'role' => 'customer',
+        ]);
+        $otherCart = \App\Models\Cart::create(['user_id' => $otherUser->id]);
+        $otherItem = $otherCart->items()->create([
+            'variant_id' => $variant->id,
+            'quantity' => 1,
+            'is_selected' => true,
+        ]);
+
+        $this->expectException(ModelNotFoundException::class);
+
+        $this->service->updateItem($otherItem->id, 2);
+    }
+
+    public function test_it_rejects_removing_an_item_from_another_cart(): void
+    {
+        $variant = $this->createVariant();
+        $otherUser = User::create([
+            'name' => 'Other',
+            'email' => 'other-remove@example.com',
+            'role' => 'customer',
+        ]);
+        $otherCart = \App\Models\Cart::create(['user_id' => $otherUser->id]);
+        $otherItem = $otherCart->items()->create([
+            'variant_id' => $variant->id,
+            'quantity' => 1,
+            'is_selected' => true,
+        ]);
+
+        $this->expectException(ModelNotFoundException::class);
+
+        $this->service->removeItem($otherItem->id);
+    }
+
+    public function test_it_rejects_toggling_an_item_from_another_cart(): void
+    {
+        $variant = $this->createVariant();
+        $otherUser = User::create([
+            'name' => 'Other',
+            'email' => 'other-toggle@example.com',
+            'role' => 'customer',
+        ]);
+        $otherCart = \App\Models\Cart::create(['user_id' => $otherUser->id]);
+        $otherItem = $otherCart->items()->create([
+            'variant_id' => $variant->id,
+            'quantity' => 1,
+            'is_selected' => true,
+        ]);
+
+        $this->expectException(ModelNotFoundException::class);
+
+        $this->service->toggleSelection($otherItem->id, false);
     }
 
     private function createVariant(string $sku = 'IP15-128'): ProductVariant

@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Customer;
 use App\Http\Controllers\Controller;
 use App\Services\ReviewService;
 use App\Services\SecureImageUploadService;
+use App\Support\UserSafeMessage;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class ReviewController extends Controller
 {
@@ -54,7 +56,9 @@ class ReviewController extends Controller
 
             return back()->with('success', 'Cảm ơn bạn đã đánh giá! Nhận xét của bạn đang chờ quản trị viên duyệt.');
         } catch (\Exception $e) {
-            return back()->with('error', $e->getMessage());
+            Log::warning('Review submit failed', ['exception' => $e]);
+
+            return back()->with('error', UserSafeMessage::from($e, 'Không thể gửi đánh giá lúc này.'));
         }
     }
 }

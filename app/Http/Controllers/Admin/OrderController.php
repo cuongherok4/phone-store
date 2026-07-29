@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Services\OrderService;
+use App\Support\UserSafeMessage;
+use Illuminate\Support\Facades\Log;
 
 class OrderController extends Controller
 {
@@ -111,7 +113,9 @@ class OrderController extends Controller
 
             return back()->with('success', 'Đã huỷ đơn hàng và hoàn kho nếu đơn đã trừ tồn.');
         } catch (\Exception $e) {
-            return back()->with('error', $e->getMessage());
+            Log::warning('Admin order cancellation failed', ['order_id' => $id, 'exception' => $e]);
+
+            return back()->with('error', UserSafeMessage::from($e, 'Không thể huỷ đơn hàng lúc này.'));
         }
     }
 

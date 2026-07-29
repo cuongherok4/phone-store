@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\HomepageCacheService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -57,9 +58,19 @@ class ProductVariant extends Model
     {
         $total = $this->inventory()->sum('quantity');
         $this->updateQuietly(['total_stock' => $total]);
+        app(HomepageCacheService::class)->flush();
     }
 
     public function isInStock(): bool { return $this->total_stock > 0; }
 
     public function scopeActive($query) { return $query->where('is_active', true)->whereNull('deleted_at'); }
+
+    protected static function booted(): void
+    {
+        $flushHomepageCache = fn () => app(HomepageCacheService::class)->flush();
+
+        static::saved($flushHomepageCache);
+        static::deleted($flushHomepageCache);
+        static::restored($flushHomepageCache);
+    }
 }

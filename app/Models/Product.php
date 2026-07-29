@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\HomepageCacheService;
 use App\Services\ProductSearchService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -83,11 +84,22 @@ class Product extends Model
             'avg_rating'   => round((float) ($stats->avg ?? 0), 2),
             'review_count' => (int) ($stats->cnt ?? 0),
         ]);
+
+        app(HomepageCacheService::class)->flush();
     }
 
     public function scopeActive($query)  { return $query->where('status', 1)->whereNull('deleted_at'); }
     public function scopeSearch($query, $keyword)
     {
         return app(ProductSearchService::class)->apply($query, $keyword);
+    }
+
+    protected static function booted(): void
+    {
+        $flushHomepageCache = fn () => app(HomepageCacheService::class)->flush();
+
+        static::saved($flushHomepageCache);
+        static::deleted($flushHomepageCache);
+        static::restored($flushHomepageCache);
     }
 }

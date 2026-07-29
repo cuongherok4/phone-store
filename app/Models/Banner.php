@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\HomepageCacheService;
 use Illuminate\Database\Eloquent\Model;
 
 class Banner extends Model
@@ -32,5 +33,13 @@ class Banner extends Model
     public function scopeSecondary($query)
     {
         return $query->where('type', 'SECONDARY');
+    }
+
+    protected static function booted(): void
+    {
+        $flushHomepageCache = fn () => app(HomepageCacheService::class)->flush();
+
+        static::saved($flushHomepageCache);
+        static::deleted($flushHomepageCache);
     }
 }

@@ -9,7 +9,9 @@ use App\Services\InventoryService;
 use App\Services\OrderService;
 use App\Models\UserAddress;
 use App\Models\Coupon;
+use App\Support\UserSafeMessage;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class CheckoutController extends Controller
 {
@@ -126,7 +128,11 @@ class CheckoutController extends Controller
 
             return redirect()->route('checkout.success', $order->id)->with('success', 'Đặt hàng thành công! Cảm ơn bạn đã tin tưởng PhoneStore.');
         } catch (\Exception $e) {
-            return back()->with('error', $e->getMessage())->withInput();
+            Log::error('Checkout process failed', ['exception' => $e]);
+
+            return back()
+                ->with('error', UserSafeMessage::from($e, 'Không thể đặt hàng lúc này, vui lòng thử lại sau.'))
+                ->withInput();
         }
     }
 
@@ -175,7 +181,11 @@ class CheckoutController extends Controller
                     $this->sendOrderEmail($order);
                 }
             } catch (\Exception $e) {
-                return redirect()->route('checkout.index')->with('error', $e->getMessage());
+                Log::error('Demo payment confirmation failed', ['order_id' => $orderId, 'exception' => $e]);
+
+                return redirect()
+                    ->route('checkout.index')
+                    ->with('error', UserSafeMessage::from($e, 'Không thể xác nhận thanh toán lúc này.'));
             }
 
             return redirect()->route('checkout.success', $order->id)
@@ -211,7 +221,11 @@ class CheckoutController extends Controller
 
                 return redirect()->route('checkout.success', $order->id)->with('success', 'Thanh toán VNPAY thành công!');
             } catch (\Exception $e) {
-                return redirect()->route('checkout.index')->with('error', $e->getMessage());
+                Log::error('VNPAY payment confirmation failed', ['order_id' => $order->id, 'exception' => $e]);
+
+                return redirect()
+                    ->route('checkout.index')
+                    ->with('error', UserSafeMessage::from($e, 'Không thể xác nhận thanh toán lúc này.'));
             }
         }
 
@@ -273,10 +287,12 @@ class CheckoutController extends Controller
                 'message' => 'Áp dụng mã giảm giá thành công!',
             ]);
         } catch (\Exception $e) {
+            Log::warning('Coupon check failed', ['code' => $validated['code'] ?? null, 'exception' => $e]);
+
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
+                'message' => UserSafeMessage::from($e, 'Không thể kiểm tra mã giảm giá lúc này.'),
+            ], UserSafeMessage::statusCode($e, 422));
         }
     }
 

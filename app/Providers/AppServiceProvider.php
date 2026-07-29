@@ -6,6 +6,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
 use App\Models\Brand;
@@ -44,12 +45,14 @@ class AppServiceProvider extends ServiceProvider
         });
 
         View::composer('layouts.app', function ($view) {
-            $globalBrands = Brand::where('is_active', true)
-                ->orderBy('name')
-                ->limit(8)
-                ->get();
+            $globalBrands = Cache::remember(Brand::NAVIGATION_CACHE_KEY, now()->addMinutes(30), function () {
+                return Brand::where('is_active', true)
+                    ->orderBy('name')
+                    ->limit(8)
+                    ->get();
+            });
 
-            $globalSettings = Setting::all()->pluck('value', 'key');
+            $globalSettings = Setting::allCached();
 
             $view->with([
                 'globalBrands' => $globalBrands,
