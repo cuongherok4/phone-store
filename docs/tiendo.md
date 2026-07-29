@@ -270,7 +270,7 @@ git commit -m "docs(deploy): add production environment checklist"
 | 10.9 | Backup database | 🟢 | Có runbook backup định kỳ, cron, retention, off-server copy, verify và restore drill |
 | 10.10 | Backup uploaded files | 🟢 | Có runbook backup `storage/app/public`, cron, off-server copy, verify và restore drill |
 | 10.11 | Release từ `develop` sang `main` | 🔴 | Chỉ merge khi CI xanh và đã review |
-| 10.12 | Tài liệu bàn giao khách hàng | 🔴 | Tài khoản admin, cách vận hành, cách backup |
+| 10.12 | Tài liệu bàn giao khách hàng | 🟢 | Có checklist bàn giao tài khoản, secret, vận hành, deploy, smoke test, backup và xử lý sự cố |
 
 ---
 
@@ -286,7 +286,7 @@ git commit -m "docs(deploy): add production environment checklist"
 
 | Mã | Việc | Lý do |
 |---|---|---|
-| **10.12** | Tài liệu bàn giao khách hàng | Gom tài khoản, vận hành, backup, queue, scheduler và quy trình xử lý lỗi |
+| **10.11** | Release từ `develop` sang `main` | Làm cuối cùng sau khi tài liệu bàn giao đã đủ và CI xanh |
 
 ### Phase 3: Vận Hành Sau Deploy (P1)
 
