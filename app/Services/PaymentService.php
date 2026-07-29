@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\Domain\PaymentGatewayException;
 use App\Models\Payment;
 use App\Models\Order;
 use Illuminate\Support\Facades\Log;
@@ -74,8 +75,13 @@ class PaymentService
         }
 
         $errorMsg = $result['message'] ?? $result['localMessage'] ?? 'Unknown Error';
-        Log::error('[MoMo] Failed: ' . json_encode($result));
-        throw new \Exception('MoMo: ' . $errorMsg . ' (resultCode: ' . ($result['resultCode'] ?? 'N/A') . ')');
+        Log::error('[MoMo] Failed', [
+            'message' => $errorMsg,
+            'result_code' => $result['resultCode'] ?? null,
+            'response' => $result,
+        ]);
+
+        throw new PaymentGatewayException('Không thể tạo giao dịch MoMo lúc này.');
     }
 
     /**

@@ -2,11 +2,12 @@
 
 namespace App\Services;
 
+use App\Exceptions\Domain\InventoryOperationException;
+use App\Exceptions\Domain\OutOfStockException;
 use App\Models\Inventory;
 use App\Models\InventoryLog;
 use App\Models\ProductVariant;
 use Illuminate\Support\Facades\DB;
-use Exception;
 
 class InventoryService
 {
@@ -41,7 +42,7 @@ class InventoryService
             ->values();
 
         if ($requiredItems->isEmpty()) {
-            throw new Exception('Không có sản phẩm hợp lệ để kiểm tra tồn kho.');
+            throw new InventoryOperationException('Không có sản phẩm hợp lệ để kiểm tra tồn kho.');
         }
 
         $variantIds = $requiredItems->pluck('variant_id')->all();
@@ -61,7 +62,7 @@ class InventoryService
             $available = $availableByVariant->get($item['variant_id'], 0);
 
             if ($available < $item['quantity']) {
-                throw new Exception("Sản phẩm \"{$item['name']}\" hiện chỉ còn {$available} sản phẩm.");
+                throw new OutOfStockException("Sản phẩm \"{$item['name']}\" hiện chỉ còn {$available} sản phẩm.");
             }
         }
     }
@@ -92,7 +93,7 @@ class InventoryService
 
             $totalStock = $inventories->sum('quantity');
             if ($totalStock < $qty) {
-                throw new Exception("Không đủ số lượng tồn kho để trừ.");
+                throw new OutOfStockException('Không đủ số lượng tồn kho để trừ.');
             }
 
             $remainingQtyToDeduct = $qty;
@@ -126,7 +127,7 @@ class InventoryService
             }
 
             if ($remainingQtyToDeduct > 0) {
-                throw new Exception("Không đủ số lượng tồn kho để trừ.");
+                throw new OutOfStockException('Không đủ số lượng tồn kho để trừ.');
             }
 
             // Sync lại cột total_stock ở ProductVariant
@@ -140,7 +141,7 @@ class InventoryService
     public function import(int $variantId, int $warehouseId, int $qty, string $note, int $adminId, int $supplierId = null, float $importPrice = null): void
     {
         if ($qty <= 0) {
-            throw new Exception("Số lượng nhập phải lớn hơn 0");
+            throw new InventoryOperationException('Số lượng nhập phải lớn hơn 0');
         }
 
         DB::transaction(function () use ($variantId, $warehouseId, $qty, $note, $adminId, $supplierId, $importPrice) {
@@ -187,7 +188,7 @@ class InventoryService
     public function adjust(int $variantId, int $warehouseId, int $newQty, string $note, int $adminId): void
     {
         if ($newQty < 0) {
-            throw new Exception("Số lượng tồn kho không thể âm");
+            throw new InventoryOperationException('Số lượng tồn kho không thể âm');
         }
 
         DB::transaction(function () use ($variantId, $warehouseId, $newQty, $note, $adminId) {

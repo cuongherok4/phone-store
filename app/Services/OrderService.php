@@ -2,11 +2,13 @@
 
 namespace App\Services;
 
+use App\Exceptions\Domain\CartOperationException;
+use App\Exceptions\Domain\InvalidOrderStateException;
+use App\Exceptions\Domain\OrderNotCancellableException;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderStatusHistory;
 use Illuminate\Support\Facades\DB;
-use Exception;
 
 class OrderService
 {
@@ -103,7 +105,7 @@ class OrderService
         $selectedItems = $cart->selectedItems;
         
         if ($selectedItems->isEmpty()) {
-            throw new Exception("Vui lòng chọn ít nhất một sản phẩm để thanh toán.");
+            throw new CartOperationException('Vui lòng chọn ít nhất một sản phẩm để thanh toán.');
         }
 
         return DB::transaction(function () use ($cart, $selectedItems, $data, $isOnlinePayment) {
@@ -192,7 +194,7 @@ class OrderService
                 ->first();
 
             if (! $lockedOrder) {
-                throw new Exception('Không tìm thấy đơn hàng thanh toán.');
+                throw new InvalidOrderStateException('Không tìm thấy đơn hàng thanh toán.', 404);
             }
 
             if ($lockedOrder->payment_status === 'PAID') {
@@ -201,11 +203,11 @@ class OrderService
             }
 
             if ($lockedOrder->status === 'CANCELLED') {
-                throw new Exception('Đơn hàng đã bị hủy, không thể xác nhận thanh toán.');
+                throw new InvalidOrderStateException('Đơn hàng đã bị hủy, không thể xác nhận thanh toán.', 409);
             }
 
             if (! in_array($lockedOrder->payment_method, ['VNPAY', 'MOMO'])) {
-                throw new Exception('Phương thức thanh toán không hợp lệ cho xác nhận online.');
+                throw new InvalidOrderStateException('Phương thức thanh toán không hợp lệ cho xác nhận online.');
             }
 
             $lockedOrder->load('items');
@@ -249,11 +251,11 @@ class OrderService
         $order = $query->with('items')->find($orderId);
 
         if (! $order) {
-            throw new Exception('Không tìm thấy đơn hàng hoặc bạn không có quyền huỷ đơn hàng này.');
+            throw new InvalidOrderStateException('Không tìm thấy đơn hàng hoặc bạn không có quyền huỷ đơn hàng này.', 404);
         }
 
         if (!$order->canBeCancelled()) {
-            throw new Exception("Đơn hàng này không thể huỷ ở trạng thái hiện tại.");
+            throw new OrderNotCancellableException('Đơn hàng này không thể huỷ ở trạng thái hiện tại.', 409);
         }
 
         DB::transaction(function () use ($order, $reason, $userId) {

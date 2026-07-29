@@ -2,6 +2,8 @@
 
 namespace Tests\Unit\Services;
 
+use App\Models\Banner;
+use App\Models\Product;
 use App\Services\HomepageCacheService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Cache;
@@ -114,6 +116,42 @@ class HomepageCacheServiceTest extends TestCase
         $this->assertSame('Old banner', $service->mainBanners()->first()->title);
 
         $service->flush();
+
+        $this->assertSame('New banner', $service->mainBanners()->first()->title);
+    }
+
+    public function test_product_model_changes_flush_homepage_cache(): void
+    {
+        $service = app(HomepageCacheService::class);
+        $brandId = $this->createBrand('Apple');
+        $productId = $this->createProduct($brandId, 'iPhone 15', now());
+
+        $this->createVariant($productId, 'IP15');
+
+        $this->assertSame('iPhone 15', $service->newProducts()->first()->name);
+
+        Product::findOrFail($productId)->update(['name' => 'iPhone 15 Pro']);
+
+        $this->assertSame('iPhone 15 Pro', $service->newProducts()->first()->name);
+    }
+
+    public function test_banner_model_changes_flush_homepage_cache(): void
+    {
+        $service = app(HomepageCacheService::class);
+
+        $bannerId = \DB::table('banners')->insertGetId([
+            'title' => 'Old banner',
+            'image_url' => 'old.webp',
+            'type' => 'MAIN',
+            'sort_order' => 1,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->assertSame('Old banner', $service->mainBanners()->first()->title);
+
+        Banner::findOrFail($bannerId)->update(['title' => 'New banner']);
 
         $this->assertSame('New banner', $service->mainBanners()->first()->title);
     }

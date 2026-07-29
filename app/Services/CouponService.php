@@ -2,21 +2,21 @@
 
 namespace App\Services;
 
+use App\Exceptions\Domain\InvalidCouponException;
 use App\Models\Coupon;
 use App\Models\CouponUsage;
 use App\Models\Order;
-use Exception;
 
 class CouponService
 {
     public function validate(string $code, int $userId, float $subtotal, bool $lockForUpdate = false): array
     {
         if ($userId <= 0) {
-            throw new Exception('Vui lòng đăng nhập để sử dụng mã giảm giá.');
+            throw new InvalidCouponException('Vui lòng đăng nhập để sử dụng mã giảm giá.');
         }
 
         if ($subtotal <= 0) {
-            throw new Exception('Giá trị đơn hàng không hợp lệ để dùng mã giảm giá.');
+            throw new InvalidCouponException('Giá trị đơn hàng không hợp lệ để dùng mã giảm giá.');
         }
 
         $query = Coupon::where('code', strtoupper(trim($code)));
@@ -28,27 +28,27 @@ class CouponService
         $coupon = $query->first();
 
         if (! $coupon) {
-            throw new Exception('Mã giảm giá không tồn tại.');
+            throw new InvalidCouponException('Mã giảm giá không tồn tại.');
         }
 
         if (! $coupon->is_active) {
-            throw new Exception('Mã giảm giá đang tạm dừng.');
+            throw new InvalidCouponException('Mã giảm giá đang tạm dừng.');
         }
 
         if ($coupon->start_at && now()->lt($coupon->start_at)) {
-            throw new Exception('Mã giảm giá chưa đến thời gian sử dụng.');
+            throw new InvalidCouponException('Mã giảm giá chưa đến thời gian sử dụng.');
         }
 
         if ($coupon->expires_at && now()->gt($coupon->expires_at)) {
-            throw new Exception('Mã giảm giá đã hết hạn.');
+            throw new InvalidCouponException('Mã giảm giá đã hết hạn.');
         }
 
         if ($coupon->max_uses && $coupon->used_count >= $coupon->max_uses) {
-            throw new Exception('Mã giảm giá đã hết lượt sử dụng.');
+            throw new InvalidCouponException('Mã giảm giá đã hết lượt sử dụng.');
         }
 
         if ($subtotal < (float) $coupon->min_order_value) {
-            throw new Exception('Đơn hàng chưa đạt giá trị tối thiểu để dùng mã này.');
+            throw new InvalidCouponException('Đơn hàng chưa đạt giá trị tối thiểu để dùng mã này.');
         }
 
         $userUsageCount = CouponUsage::where('coupon_id', $coupon->id)
@@ -56,7 +56,7 @@ class CouponService
             ->count();
 
         if ($coupon->max_uses_per_user && $userUsageCount >= $coupon->max_uses_per_user) {
-            throw new Exception('Bạn đã dùng hết lượt cho mã giảm giá này.');
+            throw new InvalidCouponException('Bạn đã dùng hết lượt cho mã giảm giá này.');
         }
 
         return [
@@ -87,7 +87,7 @@ class CouponService
     public function recordUsage(Coupon $coupon, Order $order, int $userId): void
     {
         if ($userId <= 0) {
-            throw new Exception('Không thể ghi nhận mã giảm giá cho người dùng không hợp lệ.');
+            throw new InvalidCouponException('Không thể ghi nhận mã giảm giá cho người dùng không hợp lệ.');
         }
 
         $usage = CouponUsage::firstOrCreate(
