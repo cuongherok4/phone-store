@@ -6,19 +6,20 @@ use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Services\ProductSearchService;
+use App\Services\RelatedProductService;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
     // ─── Danh sách sản phẩm (với filter, sort, paginate) ────────────────────────
-    public function index(Request $request)
+    public function index(Request $request, ProductSearchService $productSearchService)
     {
         $query = Product::where('status', 1)->whereNull('deleted_at');
+        $searchKeyword = $productSearchService->normalize($request->input('q'));
 
         // Tìm kiếm theo từ khóa
-        if ($request->filled('q')) {
-            $query->where('name', 'like', '%' . $request->input('q') . '%');
-        }
+        $productSearchService->apply($query, $searchKeyword);
 
         // Lọc theo Thương hiệu (comma-separated slugs)
         $currentBrands = collect();
@@ -73,8 +74,6 @@ class ProductController extends Controller
                       ->with(['images' => fn ($imgQ) => $imgQ->orderBy('sort_order')]);
                 },
             ])
-            ->withAvg(['reviews as avg_rating' => fn ($q) => $q->where('is_approved', true)], 'rating')
-            ->withCount(['reviews as review_count' => fn ($q) => $q->where('is_approved', true)])
             ->paginate(12)
             ->withQueryString();
 
@@ -83,8 +82,8 @@ class ProductController extends Controller
 
         // Tiêu đề trang động
         $pageTitle = 'Tất cả sản phẩm';
-        if ($request->filled('q')) {
-            $pageTitle = 'Tìm kiếm: "' . $request->input('q') . '"';
+        if ($searchKeyword !== '') {
+            $pageTitle = 'Tìm kiếm: "' . $searchKeyword . '"';
         } elseif ($currentBrands->isNotEmpty()) {
             $pageTitle = $currentBrands->pluck('name')->implode(', ');
         }
@@ -95,7 +94,7 @@ class ProductController extends Controller
     }
 
     // ─── Chi tiết sản phẩm ───────────────────────────────────────────────────────
-    public function show($slug)
+    public function show($slug, RelatedProductService $relatedProductService)
     {
         $product = Product::where('slug', $slug)
             ->where('status', 1)
@@ -192,21 +191,7 @@ class ProductController extends Controller
             $variantsData[] = $variantInfo;
         }
 
-        // Sản phẩm liên quan (loại trừ sản phẩm hiện tại)
-        $relatedProducts = Product::where('status', 1)
-            ->whereNull('deleted_at')
-            ->where('id', '!=', $product->id)
-            ->with([
-                'brand',
-                'variants' => fn ($q) => $q->where('is_active', true)
-                    ->orderBy('price', 'asc')
-                    ->with(['images' => fn ($imgQ) => $imgQ->orderBy('sort_order')]),
-            ])
-            ->withAvg(['reviews as avg_rating' => fn ($q) => $q->where('is_approved', true)], 'rating')
-            ->withCount(['reviews as review_count' => fn ($q) => $q->where('is_approved', true)])
-            ->inRandomOrder()
-            ->limit(4)
-            ->get();
+        $relatedProducts = $relatedProductService->getFor($product);
 
         // Kiểm tra xem user có thể đánh giá sản phẩm này không
         $canReview = false;

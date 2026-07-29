@@ -2,21 +2,25 @@
 
 namespace App\Services;
 
+use App\Exceptions\Domain\CartOperationException;
+use App\Exceptions\Domain\InvalidOrderStateException;
+use App\Exceptions\Domain\OrderNotCancellableException;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderStatusHistory;
 use Illuminate\Support\Facades\DB;
-use Exception;
 
 class OrderService
 {
     protected $cartService;
     protected $inventoryService;
+    protected $couponService;
 
-    public function __construct(CartService $cartService, InventoryService $inventoryService)
+    public function __construct(CartService $cartService, InventoryService $inventoryService, CouponService $couponService)
     {
         $this->cartService = $cartService;
         $this->inventoryService = $inventoryService;
+        $this->couponService = $couponService;
     }
 
     public function createFromCart(array $data)
@@ -26,25 +30,29 @@ class OrderService
 
         // LUỒNG MUA NGAY (Direct Buy - Bỏ qua giỏ hàng)
         if (isset($data['variant_id'])) {
-            $variant = \App\Models\ProductVariant::findOrFail($data['variant_id']);
+            $variant = \App\Models\ProductVariant::with(['product', 'variantAttributes.attributeValue'])
+                ->findOrFail($data['variant_id']);
             $qty = $data['quantity'] ?? 1;
             $subtotal = $variant->price * $qty;
 
             return DB::transaction(function () use ($variant, $qty, $data, $isOnlinePayment, $subtotal) {
-                // Kiểm tra tồn kho
-                $stock = $this->inventoryService->getStock($variant->id);
-                if ($stock < $qty) {
-                    throw new Exception("Sản phẩm {$variant->product->name} hiện chỉ còn {$stock} sản phẩm.");
-                }
+                $couponData = $this->resolveCoupon($data, $subtotal);
+
+                $this->inventoryService->assertAvailable(
+                    $variant->id,
+                    $qty,
+                    $variant->product->name,
+                    true
+                );
 
                 $order = Order::create([
                     'user_id'          => auth()->id(),
                     'address_id'       => $data['address_id'] ?? null,
-                    'coupon_id'        => $data['coupon_id'] ?? null,
+                    'coupon_id'        => $couponData['coupon']?->id,
                     'subtotal'         => $subtotal,
-                    'discount_amount'  => $data['discount_amount'] ?? 0,
+                    'discount_amount'  => $couponData['discount_amount'],
                     'shipping_fee'     => $data['shipping_fee'] ?? 0,
-                    'total_price'      => $subtotal + ($data['shipping_fee'] ?? 0) - ($data['discount_amount'] ?? 0),
+                    'total_price'      => $subtotal + ($data['shipping_fee'] ?? 0) - $couponData['discount_amount'],
                     'status'           => 'PENDING',
                     'payment_status'   => 'UNPAID',
                     'payment_method'   => $data['payment_method'] ?? 'COD',
@@ -54,9 +62,16 @@ class OrderService
                     'note'             => $data['note'] ?? null,
                 ]);
 
+                $variantAttrs = $variant->variantAttributes
+                    ->map(fn($va) => $va->attributeValue->value ?? '')
+                    ->filter()
+                    ->implode(' / ');
+
                 OrderItem::create([
                     'order_id'   => $order->id,
                     'variant_id' => $variant->id,
+                    'sku'        => $variant->sku,
+                    'name'       => $variant->product->name . ($variantAttrs ? ' (' . $variantAttrs . ')' : ''),
                     'quantity'   => $qty,
                     'price'      => $variant->price,
                     'subtotal'   => $subtotal,
@@ -64,13 +79,17 @@ class OrderService
 
                 // Ghi log lịch sử
                 OrderStatusHistory::create([
-                    'order_id' => $order->id,
-                    'status'   => 'PENDING',
-                    'note'     => 'Đơn hàng được tạo (Mua ngay)',
+                    'order_id'   => $order->id,
+                    'new_status' => 'PENDING',
+                    'note'       => 'Đơn hàng được tạo (Mua ngay)',
                 ]);
 
                 if (!$isOnlinePayment) {
-                    $this->inventoryService->reduceStock($variant->id, $qty, "Đặt hàng trực tiếp #{$order->id}");
+                    $this->inventoryService->deduct($variant->id, $qty, $order->id);
+                }
+
+                if ($couponData['coupon']) {
+                    $this->couponService->recordUsage($couponData['coupon'], $order, auth()->id());
                 }
 
                 // Xoá sản phẩm này khỏi giỏ hàng nếu có
@@ -86,19 +105,36 @@ class OrderService
         $selectedItems = $cart->selectedItems;
         
         if ($selectedItems->isEmpty()) {
-            throw new Exception("Vui lòng chọn ít nhất một sản phẩm để thanh toán.");
+            throw new CartOperationException('Vui lòng chọn ít nhất một sản phẩm để thanh toán.');
         }
 
         return DB::transaction(function () use ($cart, $selectedItems, $data, $isOnlinePayment) {
+            $subtotal = $cart->total;
+            $couponData = $this->resolveCoupon($data, $subtotal);
+
+            $selectedItems->loadMissing([
+                'variant.product',
+                'variant.variantAttributes.attributeValue',
+            ]);
+
+            $this->inventoryService->assertManyAvailable(
+                $selectedItems->map(fn ($cartItem) => [
+                    'variant_id' => $cartItem->variant_id,
+                    'quantity'   => $cartItem->quantity,
+                    'name'       => $cartItem->variant->product->name,
+                ])->all(),
+                true
+            );
+
             // 1. Tạo bản ghi Order
             $order = Order::create([
                 'user_id'          => auth()->id(),
                 'address_id'       => $data['address_id'] ?? null,
-                'coupon_id'        => $data['coupon_id'] ?? null,
-                'subtotal'         => $cart->total,
-                'discount_amount'  => $data['discount_amount'] ?? 0,
+                'coupon_id'        => $couponData['coupon']?->id,
+                'subtotal'         => $subtotal,
+                'discount_amount'  => $couponData['discount_amount'],
                 'shipping_fee'     => $data['shipping_fee'] ?? 0,
-                'total_price'      => $cart->total + ($data['shipping_fee'] ?? 0) - ($data['discount_amount'] ?? 0),
+                'total_price'      => $subtotal + ($data['shipping_fee'] ?? 0) - $couponData['discount_amount'],
                 'status'           => 'PENDING',
                 'payment_status'   => 'UNPAID',
                 'payment_method'   => $data['payment_method'] ?? 'COD',
@@ -110,12 +146,6 @@ class OrderService
 
             // 2. Chuyển Cart Items sang Order Items
             foreach ($selectedItems as $cartItem) {
-                // Kiểm tra tồn kho cho tất cả phương thức
-                $stock = $this->inventoryService->getStock($cartItem->variant_id);
-                if ($stock < $cartItem->quantity) {
-                    throw new Exception("Sản phẩm \"{$cartItem->variant->product->name}\" hiện đã hết hàng hoặc không đủ số lượng.");
-                }
-
                 // Lấy tên variant (RAM/ROM/màu)
                 $variantAttrs = $cartItem->variant->variantAttributes
                     ->map(fn($va) => $va->attributeValue->value ?? '')
@@ -128,12 +158,17 @@ class OrderService
                     'name'       => $cartItem->variant->product->name . ($variantAttrs ? ' (' . $variantAttrs . ')' : ''),
                     'price'      => $cartItem->variant->price,
                     'quantity'   => $cartItem->quantity,
+                    'subtotal'   => $cartItem->variant->price * $cartItem->quantity,
                 ]);
 
                 // Chỉ trừ kho ngay với COD — Online payment chờ callback
                 if (!$isOnlinePayment) {
                     $this->inventoryService->deduct($cartItem->variant_id, $cartItem->quantity, $order->id);
                 }
+            }
+
+            if ($couponData['coupon']) {
+                $this->couponService->recordUsage($couponData['coupon'], $order, auth()->id());
             }
 
             // 3. Ghi lại lịch sử trạng thái
@@ -154,50 +189,78 @@ class OrderService
     public function confirmOnlinePayment(Order $order): bool
     {
         return DB::transaction(function () use ($order) {
-            // Sử dụng atomic update để kiểm tra và đánh dấu PAID cùng lúc
-            // Tránh race condition nếu IPN và Redirect callback xảy ra đồng thời
-            $affected = DB::table('orders')
-                ->where('id', $order->id)
-                ->where('payment_status', '!=', 'PAID')
-                ->update([
-                    'payment_status' => 'PAID',
-                    'status'         => 'CONFIRMED',
-                    'updated_at'     => now(),
-                ]);
+            $lockedOrder = Order::whereKey($order->id)
+                ->lockForUpdate()
+                ->first();
 
-            if ($affected > 0) {
-                // 1. Trừ tồn kho
-                foreach ($order->items as $item) {
-                    $this->inventoryService->deduct($item->variant_id, $item->quantity, $order->id);
-                }
-
-                $this->logStatus($order->id, 'CONFIRMED', 'Thanh toán online thành công. Đơn hàng đã được xác nhận.');
-
-                // 2. Xoá giỏ hàng của user
-                $this->cartService->clearCart();
-                
-                // Refresh model data
-                $order->refresh();
-                
-                return true;
+            if (! $lockedOrder) {
+                throw new InvalidOrderStateException('Không tìm thấy đơn hàng thanh toán.', 404);
             }
-            
-            return false;
+
+            if ($lockedOrder->payment_status === 'PAID') {
+                $order->setRawAttributes($lockedOrder->getAttributes(), true);
+                return false;
+            }
+
+            if ($lockedOrder->status === 'CANCELLED') {
+                throw new InvalidOrderStateException('Đơn hàng đã bị hủy, không thể xác nhận thanh toán.', 409);
+            }
+
+            if (! in_array($lockedOrder->payment_method, ['VNPAY', 'MOMO'])) {
+                throw new InvalidOrderStateException('Phương thức thanh toán không hợp lệ cho xác nhận online.');
+            }
+
+            $lockedOrder->load('items');
+            $oldStatus = $lockedOrder->status;
+
+            foreach ($lockedOrder->items as $item) {
+                $this->inventoryService->deduct($item->variant_id, $item->quantity, $lockedOrder->id);
+            }
+
+            $lockedOrder->update([
+                'payment_status' => 'PAID',
+                'status'         => 'CONFIRMED',
+            ]);
+
+            $this->logStatus(
+                $lockedOrder->id,
+                'CONFIRMED',
+                'Thanh toán online thành công. Đơn hàng đã được xác nhận.',
+                null,
+                $oldStatus
+            );
+
+            $this->cartService->clearCart();
+            $order->setRawAttributes($lockedOrder->fresh()->getAttributes(), true);
+
+            return true;
         });
     }
 
     /**
      * Huỷ đơn hàng.
      */
-    public function cancelOrder(int $orderId, string $reason, $userId = null)
+    public function cancelOrder(int $orderId, string $reason, $userId = null, ?int $ownerUserId = null)
     {
-        $order = Order::findOrFail($orderId);
+        $query = Order::query();
+
+        if ($ownerUserId !== null) {
+            $query->where('user_id', $ownerUserId);
+        }
+
+        $order = $query->with('items')->find($orderId);
+
+        if (! $order) {
+            throw new InvalidOrderStateException('Không tìm thấy đơn hàng hoặc bạn không có quyền huỷ đơn hàng này.', 404);
+        }
 
         if (!$order->canBeCancelled()) {
-            throw new Exception("Đơn hàng này không thể huỷ ở trạng thái hiện tại.");
+            throw new OrderNotCancellableException('Đơn hàng này không thể huỷ ở trạng thái hiện tại.', 409);
         }
 
         DB::transaction(function () use ($order, $reason, $userId) {
+            $oldStatus = $order->status;
+
             $order->update([
                 'status' => 'CANCELLED',
                 'cancelled_reason' => $reason
@@ -213,7 +276,7 @@ class OrderService
                 }
             }
 
-            $this->logStatus($order->id, 'CANCELLED', "Huỷ đơn hàng. Lý do: {$reason}", $userId);
+            $this->logStatus($order->id, 'CANCELLED', "Huỷ đơn hàng. Lý do: {$reason}", $userId, $oldStatus);
         });
 
         return $order;
@@ -227,6 +290,7 @@ class OrderService
         $order = Order::findOrFail($orderId);
         
         DB::transaction(function () use ($order, $status, $note, $userId) {
+            $oldStatus = $order->status;
             $updateData = ['status' => $status];
             
             // Nếu đơn hàng hoàn thành, tự động chuyển sang Đã thanh toán
@@ -235,7 +299,7 @@ class OrderService
             }
 
             $order->update($updateData);
-            $this->logStatus($order->id, $status, $note, $userId);
+            $this->logStatus($order->id, $status, $note, $userId, $oldStatus);
         });
 
         return $order;
@@ -244,10 +308,12 @@ class OrderService
     /**
      * Ghi lịch sử trạng thái.
      */
-    protected function logStatus(int $orderId, string $status, string $note = null, $userId = null)
+    protected function logStatus(int $orderId, string $status, string $note = null, $userId = null, ?string $oldStatus = null)
     {
-        $order = Order::find($orderId);
-        $oldStatus = $order ? $order->status : null;
+        if ($oldStatus === null) {
+            $order = Order::find($orderId);
+            $oldStatus = $order ? $order->status : null;
+        }
 
         OrderStatusHistory::create([
             'order_id'   => $orderId,
@@ -257,5 +323,16 @@ class OrderService
             'changed_by' => $userId ?? auth()->id(),
             'created_at' => now(),
         ]);
+    }
+
+    private function resolveCoupon(array $data, float $subtotal): array
+    {
+        $code = $data['coupon_code'] ?? null;
+
+        if (! $code) {
+            return ['coupon' => null, 'discount_amount' => 0.0];
+        }
+
+        return $this->couponService->validate($code, auth()->id(), $subtotal, true);
     }
 }

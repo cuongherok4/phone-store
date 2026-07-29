@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules\Password;
 
 class RegisterController extends Controller
@@ -46,9 +47,11 @@ class RegisterController extends Controller
                             ->with('success', 'Đăng ký tài khoản thành công!');
 
         } catch (\Exception $e) {
+            Log::error('Registration failed', ['email' => $validated['email'] ?? null, 'exception' => $e]);
+
             return back()
                     ->withInput()
-                    ->with('error', 'Đăng ký thất bại: ' . $e->getMessage());
+                    ->with('error', 'Đăng ký thất bại, vui lòng thử lại sau.');
         }
     }
 }

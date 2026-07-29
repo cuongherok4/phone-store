@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Services\WishlistService;
+use App\Support\UserSafeMessage;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class WishlistController extends Controller
 {
@@ -39,7 +41,12 @@ class WishlistController extends Controller
                 'message' => $isAdded ? 'Đã thêm vào yêu thích!' : 'Đã xoá khỏi yêu thích!'
             ]);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+            Log::warning('Wishlist toggle failed', ['exception' => $e]);
+
+            return response()->json([
+                'success' => false,
+                'message' => UserSafeMessage::from($e, 'Không thể cập nhật danh sách yêu thích lúc này.'),
+            ], UserSafeMessage::statusCode($e));
         }
     }
 }

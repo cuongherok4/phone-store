@@ -22,7 +22,6 @@ Route::redirect('/home', '/');
 Route::get('/san-pham',           [ProductController::class, 'index'])->name('customer.products.index');
 Route::get('/san-pham/{slug}',    [ProductController::class, 'show'])->name('customer.products.show');
 Route::get('/thuong-hieu/{slug}', [ProductController::class, 'byBrand'])->name('customer.products.byBrand');
-Route::get('/danh-muc/{slug}',    [ProductController::class, 'byCategory'])->name('customer.products.byCategory');
 Route::post('/ai/consult',        [AIController::class, 'consult'])->name('customer.ai.consult');
 
 // ===================== AUTH ROUTES =====================
@@ -39,9 +38,9 @@ Route::middleware(['web', 'auth'])->group(function () {
 
     // THANH TOÁN
     Route::get('/thanh-toan',             [CheckoutController::class, 'index'])->name('checkout.index');
-    Route::post('/thanh-toan/dat-hang',    [CheckoutController::class, 'process'])->name('checkout.process');
+    Route::post('/thanh-toan/dat-hang',    [CheckoutController::class, 'process'])->middleware('throttle:checkout')->name('checkout.process');
     Route::get('/thanh-toan/thanh-cong/{id}', [CheckoutController::class, 'success'])->name('checkout.success');
-    Route::post('/thanh-toan/check-coupon', [CheckoutController::class, 'checkCoupon'])->name('checkout.check_coupon');
+    Route::post('/thanh-toan/check-coupon', [CheckoutController::class, 'checkCoupon'])->middleware('throttle:coupon-check')->name('checkout.check_coupon');
     Route::get('/thanh-toan/demo-gateway', [CheckoutController::class, 'demoGateway'])->name('checkout.demo_gateway');
     Route::get('/thanh-toan/demo-callback', [CheckoutController::class, 'demoCallback'])->name('checkout.demo_callback');
 

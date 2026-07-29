@@ -17,6 +17,9 @@ class Coupon extends Model
         'discount_value'     => 'float',
         'max_discount_amount'=> 'float',
         'min_order_value'    => 'float',
+        'max_uses'           => 'integer',
+        'max_uses_per_user'  => 'integer',
+        'used_count'         => 'integer',
         'is_active'          => 'boolean',
         'start_at'           => 'datetime',
         'expires_at'         => 'datetime',
@@ -24,6 +27,11 @@ class Coupon extends Model
 
     public function usages() { return $this->hasMany(CouponUsage::class); }
     public function orders() { return $this->hasMany(Order::class); }
+
+    public function setCodeAttribute($value): void
+    {
+        $this->attributes['code'] = strtoupper(trim($value));
+    }
 
     public function isValid(): bool
     {

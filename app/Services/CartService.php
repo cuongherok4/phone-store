@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\Domain\OutOfStockException;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\ProductVariant;
@@ -35,41 +36,46 @@ class CartService
      */
     public function addItem(int $variantId, int $quantity, bool $buyNow = false)
     {
-        $cart = $this->getOrCreateCart();
+        return DB::transaction(function () use ($variantId, $quantity, $buyNow) {
+            $cart = $this->lockCurrentCart();
 
-        if ($buyNow) {
-            // Shopee style: Mua ngay chỉ mua sản phẩm đó -> bỏ chọn tất cả các thứ khác
-            $cart->items()->update(['is_selected' => false]);
-        }
+            if ($buyNow) {
+                // Shopee style: Mua ngay chỉ mua sản phẩm đó -> bỏ chọn tất cả các thứ khác
+                $cart->items()->update(['is_selected' => false]);
+            }
 
-        $variant = ProductVariant::findOrFail($variantId);
+            $variant = ProductVariant::findOrFail($variantId);
 
-        // Kiểm tra tồn kho
-        $availableStock = $this->inventoryService->getStock($variantId);
-        
-        $cartItem = $cart->items()->where('variant_id', $variantId)->first();
-        
-        // Shopee style for Buy Now: Overwrite quantity instead of adding
-        $newQty = ($buyNow) ? $quantity : (($cartItem ? $cartItem->quantity : 0) + $quantity);
+            // Kiểm tra tồn kho
+            $availableStock = $this->inventoryService->getStock($variantId);
 
-        if ($newQty > $availableStock) {
-            throw new \Exception("Không đủ hàng trong kho. Hiện còn: {$availableStock}");
-        }
+            $cartItem = $cart->items()
+                ->where('variant_id', $variantId)
+                ->lockForUpdate()
+                ->first();
 
-        if ($cartItem) {
-            $cartItem->update([
-                'quantity' => $newQty,
-                'is_selected' => true
-            ]);
-        } else {
-            $cart->items()->create([
-                'variant_id' => $variantId,
-                'quantity' => $quantity,
-                'is_selected' => true
-            ]);
-        }
+            // Shopee style for Buy Now: Overwrite quantity instead of adding
+            $newQty = ($buyNow) ? $quantity : (($cartItem ? $cartItem->quantity : 0) + $quantity);
 
-        return $cart->load('items.variant.product', 'items.variant.variantAttributes.attributeValue');
+            if ($newQty > $availableStock) {
+                throw new OutOfStockException("Không đủ hàng trong kho. Hiện còn: {$availableStock}");
+            }
+
+            if ($cartItem) {
+                $cartItem->update([
+                    'quantity' => $newQty,
+                    'is_selected' => true
+                ]);
+            } else {
+                $cart->items()->create([
+                    'variant_id' => $variantId,
+                    'quantity' => $quantity,
+                    'is_selected' => true
+                ]);
+            }
+
+            return $cart->load('items.variant.product', 'items.variant.variantAttributes.attributeValue');
+        });
     }
 
     /**
@@ -77,20 +83,26 @@ class CartService
      */
     public function updateItem(int $itemId, int $quantity)
     {
-        $cartItem = CartItem::findOrFail($itemId);
-        $availableStock = $this->inventoryService->getStock($cartItem->variant_id);
+        return DB::transaction(function () use ($itemId, $quantity) {
+            $cartItem = $this->getCurrentCartItem($itemId);
 
-        if ($quantity > $availableStock) {
-            throw new \Exception("Không đủ hàng trong kho. Hiện còn: {$availableStock}");
-        }
+            if ($quantity <= 0) {
+                $cart = $cartItem->cart;
+                $cartItem->delete();
 
-        if ($quantity <= 0) {
-            $cartItem->delete();
-        } else {
+                return $cart->load('items.variant.product', 'items.variant.images');
+            }
+
+            $availableStock = $this->inventoryService->getStock($cartItem->variant_id);
+
+            if ($quantity > $availableStock) {
+                throw new OutOfStockException("Không đủ hàng trong kho. Hiện còn: {$availableStock}");
+            }
+
             $cartItem->update(['quantity' => $quantity]);
-        }
 
-        return $cartItem->cart->load('items.variant.product', 'items.variant.images');
+            return $cartItem->cart->load('items.variant.product', 'items.variant.images');
+        });
     }
 
     /**
@@ -98,11 +110,13 @@ class CartService
      */
     public function removeItem(int $itemId)
     {
-        $cartItem = CartItem::findOrFail($itemId);
-        $cart = $cartItem->cart;
-        $cartItem->delete();
+        return DB::transaction(function () use ($itemId) {
+            $cartItem = $this->getCurrentCartItem($itemId);
+            $cart = $cartItem->cart;
+            $cartItem->delete();
 
-        return $cart->load('items.variant.product', 'items.variant.images');
+            return $cart->load('items.variant.product', 'items.variant.images');
+        });
     }
 
     /**
@@ -146,9 +160,12 @@ class CartService
      */
     public function toggleSelection(int $itemId, bool $isSelected)
     {
-        $cartItem = CartItem::findOrFail($itemId);
-        $cartItem->update(['is_selected' => $isSelected]);
-        return $cartItem->cart->load('items.variant.product', 'items.variant.variantAttributes.attributeValue');
+        return DB::transaction(function () use ($itemId, $isSelected) {
+            $cartItem = $this->getCurrentCartItem($itemId);
+            $cartItem->update(['is_selected' => $isSelected]);
+
+            return $cartItem->cart->load('items.variant.product', 'items.variant.variantAttributes.attributeValue');
+        });
     }
 
     /**
@@ -170,5 +187,23 @@ class CartService
         $cart = $this->getOrCreateCart();
         $cart->items()->where('is_selected', true)->delete();
         return $cart;
+    }
+
+    private function getCurrentCartItem(int $itemId): CartItem
+    {
+        return $this->getOrCreateCart()
+            ->items()
+            ->whereKey($itemId)
+            ->lockForUpdate()
+            ->firstOrFail();
+    }
+
+    private function lockCurrentCart(): Cart
+    {
+        $cart = $this->getOrCreateCart();
+
+        return Cart::whereKey($cart->id)
+            ->lockForUpdate()
+            ->firstOrFail();
     }
 }

@@ -9,7 +9,9 @@ use App\Models\ProductVariant;
 use App\Models\Supplier;
 use App\Models\Warehouse;
 use App\Services\InventoryService;
+use App\Support\UserSafeMessage;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class InventoryController extends Controller
 {
@@ -86,7 +88,11 @@ class InventoryController extends Controller
 
             return redirect()->route('admin.inventory.index')->with('success', 'Nhập hàng thành công.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Lỗi: ' . $e->getMessage())->withInput();
+            Log::error('Inventory import failed', ['exception' => $e]);
+
+            return back()
+                ->with('error', UserSafeMessage::from($e, 'Không thể nhập hàng lúc này.'))
+                ->withInput();
         }
     }
 

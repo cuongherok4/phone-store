@@ -5,13 +5,10 @@ namespace App\Http\Controllers\Customer;
 use App\Http\Controllers\Controller;
 use App\Models\ProductVariant;
 use App\Services\CartService;
+use App\Support\UserSafeMessage;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
-/**
- * CartController — Stub cho 3.2
- * Logic đầy đủ (CartService, merge guest cart, validate stock) sẽ hoàn thiện ở mục 3.3.
- * Hiện tại: lưu giỏ hàng vào Session, hỗ trợ cả guest và user.
- */
 class CartController extends Controller
 {
     protected $cartService;
@@ -62,10 +59,16 @@ class CartController extends Controller
 
             return back()->with('success', '✅ Đã thêm sản phẩm vào giỏ hàng!');
         } catch (\Exception $e) {
+            Log::warning('Cart add failed', ['exception' => $e]);
+            $message = UserSafeMessage::from($e, 'Không thể thêm sản phẩm vào giỏ hàng lúc này.');
+
             if ($request->expectsJson()) {
-                return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+                return response()->json([
+                    'success' => false,
+                    'message' => $message,
+                ], UserSafeMessage::statusCode($e));
             }
-            return back()->with('error', $e->getMessage());
+            return back()->with('error', $message);
         }
     }
 
@@ -89,7 +92,12 @@ class CartController extends Controller
 
             return back();
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+            Log::warning('Cart update failed', ['item_id' => $itemId, 'exception' => $e]);
+
+            return response()->json([
+                'success' => false,
+                'message' => UserSafeMessage::from($e, 'Không thể cập nhật giỏ hàng lúc này.'),
+            ], UserSafeMessage::statusCode($e));
         }
     }
 

@@ -22,3 +22,8 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Thư mục tạm & tài nguyên thô
+/scratch
+/img
+/mark_migrations.php

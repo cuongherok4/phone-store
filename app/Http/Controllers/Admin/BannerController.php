@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Banner;
+use App\Services\HomepageCacheService;
+use App\Services\SecureImageUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -20,21 +22,22 @@ class BannerController extends Controller
         return view('admin.banners.create');
     }
 
-    public function store(Request $request)
+    public function store(Request $request, SecureImageUploadService $imageUploadService)
     {
         $request->validate([
-            'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'image' => SecureImageUploadService::validationRules(required: true, maxKilobytes: 3072),
             'type' => 'required|in:MAIN,SECONDARY',
         ]);
 
         $data = $request->only(['title', 'link_url', 'type', 'sort_order', 'is_active']);
         
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('banners', 'public');
+            $path = $imageUploadService->storeWebp($request->file('image'), 'banners', maxWidth: 1920);
             $data['image_url'] = $path;
         }
 
         Banner::create($data);
+        app(HomepageCacheService::class)->flush();
 
         return redirect()->route('admin.banners.index')->with('success', 'Thêm banner thành công!');
     }
@@ -44,10 +47,10 @@ class BannerController extends Controller
         return view('admin.banners.edit', compact('banner'));
     }
 
-    public function update(Request $request, Banner $banner)
+    public function update(Request $request, Banner $banner, SecureImageUploadService $imageUploadService)
     {
         $request->validate([
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'image' => SecureImageUploadService::validationRules(maxKilobytes: 3072),
             'type' => 'required|in:MAIN,SECONDARY',
         ]);
 
@@ -58,11 +61,12 @@ class BannerController extends Controller
             if ($banner->image_url) {
                 Storage::disk('public')->delete($banner->image_url);
             }
-            $path = $request->file('image')->store('banners', 'public');
+            $path = $imageUploadService->storeWebp($request->file('image'), 'banners', maxWidth: 1920);
             $data['image_url'] = $path;
         }
 
         $banner->update($data);
+        app(HomepageCacheService::class)->flush();
 
         return redirect()->route('admin.banners.index')->with('success', 'Cập nhật banner thành công!');
     }
@@ -73,6 +77,7 @@ class BannerController extends Controller
             Storage::disk('public')->delete($banner->image_url);
         }
         $banner->delete();
+        app(HomepageCacheService::class)->flush();
 
         return redirect()->route('admin.banners.index')->with('success', 'Xóa banner thành công!');
     }

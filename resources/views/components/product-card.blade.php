@@ -86,14 +86,6 @@
 
     {{-- Product Info --}}
     <div class="flex-grow flex flex-col">
-        {{-- Category --}}
-        @if($product->category)
-            <a href="{{ route('customer.products.byCategory', $product->category->slug) }}"
-               class="text-xs text-gray-500 hover:text-brand-600 mb-1 font-medium transition line-clamp-1">
-                {{ $product->category->name }}
-            </a>
-        @endif
-
         {{-- Name --}}
         <a href="{{ route('customer.products.show', $product->slug) }}"
            class="text-sm font-semibold text-gray-800 line-clamp-2 hover:text-brand-600 transition mb-2 leading-snug">

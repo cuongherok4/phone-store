@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Exceptions\Domain\PaymentGatewayException;
+use App\Models\Payment;
 use App\Models\Order;
 use Illuminate\Support\Facades\Log;
 
@@ -73,8 +75,13 @@ class PaymentService
         }
 
         $errorMsg = $result['message'] ?? $result['localMessage'] ?? 'Unknown Error';
-        Log::error('[MoMo] Failed: ' . json_encode($result));
-        throw new \Exception('MoMo: ' . $errorMsg . ' (resultCode: ' . ($result['resultCode'] ?? 'N/A') . ')');
+        Log::error('[MoMo] Failed', [
+            'message' => $errorMsg,
+            'result_code' => $result['resultCode'] ?? null,
+            'response' => $result,
+        ]);
+
+        throw new PaymentGatewayException('Không thể tạo giao dịch MoMo lúc này.');
     }
 
     /**
@@ -170,19 +177,21 @@ class PaymentService
         $vnp_HashSecret = \App\Models\Setting::get('vnpay_hash_secret');
         $secureHash = hash_hmac('sha512', $hashData, $vnp_HashSecret);
 
-        if ($secureHash == $vnp_SecureHash) {
-            if ($inputData['vnp_ResponseCode'] == '00') {
-                // Thành công
-                $txnRefParts = explode('_', $inputData['vnp_TxnRef']);
-                $orderId = $txnRefParts[0];
-                $order = Order::find($orderId);
-                
-                if ($order && $order->payment_status !== 'PAID') {
-                    // Lưu record
-                    $this->savePaymentRecord($order, 'VNPAY', $inputData['vnp_TransactionNo'], $order->total_price, 'SUCCESS', json_encode($inputData));
-                    
-                    return ['success' => true, 'order_id' => $order->id];
-                }
+        if (hash_equals($secureHash, $vnp_SecureHash) && ($inputData['vnp_ResponseCode'] ?? null) === '00') {
+            $txnRefParts = explode('_', $inputData['vnp_TxnRef'] ?? '');
+            $order = Order::find($txnRefParts[0] ?? null);
+
+            if ($order && $this->isValidGatewayAmount($order, ($inputData['vnp_Amount'] ?? 0) / 100)) {
+                $this->savePaymentRecord(
+                    $order,
+                    'VNPAY',
+                    (string) ($inputData['vnp_TransactionNo'] ?? $inputData['vnp_TxnRef']),
+                    $order->total_price,
+                    'SUCCESS',
+                    json_encode($inputData)
+                );
+
+                return ['success' => true, 'order_id' => $order->id];
             }
         }
         
@@ -194,15 +203,19 @@ class PaymentService
      */
     protected function savePaymentRecord($order, $method, $transactionId, $amount, $status, $response)
     {
-        \App\Models\Payment::create([
-            'order_id' => $order->id,
-            'method' => $method,
-            'transaction_id' => $transactionId,
-            'amount' => $amount,
-            'status' => $status,
-            'gateway_response' => $response,
-            'paid_at' => now(),
-        ]);
+        Payment::updateOrCreate(
+            [
+                'method' => $method,
+                'transaction_id' => (string) $transactionId,
+            ],
+            [
+                'order_id' => $order->id,
+                'amount' => $amount,
+                'status' => $status,
+                'gateway_response' => $response,
+                'paid_at' => now(),
+            ]
+        );
     }
 
     /**
@@ -246,7 +259,7 @@ class PaymentService
 
         $partnerSignature = hash_hmac('sha256', $rawHash, $secretKey);
 
-        Log::info('[MoMo] resultCode=' . $resultCode . ' signatureMatch=' . ($m2signature === $partnerSignature ? 'YES' : 'NO'));
+        Log::info('[MoMo] resultCode=' . $resultCode . ' signatureMatch=' . (hash_equals($partnerSignature, $m2signature) ? 'YES' : 'NO'));
 
         // Lấy orderId thật: thử từ extraData trước, fallback về split '_'
         $realOrderId = null;
@@ -260,17 +273,12 @@ class PaymentService
         }
 
         // Chấp nhận khi: chữ ký đúng VÀ resultCode = 0
-        if ($m2signature === $partnerSignature && $resultCode == '0') {
+        if (hash_equals($partnerSignature, $m2signature) && $resultCode == '0') {
             $order = Order::find($realOrderId);
 
-            if ($order && $order->payment_status !== 'PAID') {
+            if ($order && $this->isValidGatewayAmount($order, $amount)) {
                 $this->savePaymentRecord($order, 'MOMO', (string)$transId, $amount, 'SUCCESS', json_encode($inputData));
                 Log::info('[MoMo] Payment SUCCESS for order ' . $order->id);
-                return ['success' => true, 'order_id' => $order->id];
-            }
-
-            // Đơn đã được xử lý trước đó (idempotent)
-            if ($order && $order->payment_status === 'PAID') {
                 return ['success' => true, 'order_id' => $order->id];
             }
         }
@@ -281,5 +289,10 @@ class PaymentService
 
         Log::warning('[MoMo] Payment FAILED: ' . $reason);
         return ['success' => false, 'message' => $reason];
+    }
+
+    private function isValidGatewayAmount(Order $order, $amount): bool
+    {
+        return (int) round((float) $amount) === (int) round((float) $order->total_price);
     }
 }

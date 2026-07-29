@@ -22,6 +22,8 @@ class SettingController extends Controller
             Setting::where('key', $key)->update(['value' => $value]);
         }
 
+        Setting::flushCache();
+
         return redirect()->back()->with('success', 'Cập nhật cấu hình thành công!');
     }
 }

@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
+use App\Exceptions\Domain\ReviewOperationException;
 use App\Models\Review;
 use App\Models\OrderItem;
 use Illuminate\Support\Facades\Auth;
-use Exception;
 
 class ReviewService
 {
@@ -20,15 +20,15 @@ class ReviewService
         $orderItem = OrderItem::where('id', $data['order_item_id'])
             ->whereHas('order', function($q) use ($userId) {
                 $q->where('user_id', $userId)->where('status', 'COMPLETED');
-            })->first();
+        })->first();
 
         if (!$orderItem) {
-            throw new Exception("Bạn chỉ có thể đánh giá sản phẩm sau khi đã mua hàng thành công.");
+            throw new ReviewOperationException('Bạn chỉ có thể đánh giá sản phẩm sau khi đã mua hàng thành công.');
         }
 
         // 2. Kiểm tra xem đã đánh giá chưa
         if (Review::where('order_item_id', $data['order_item_id'])->exists()) {
-            throw new Exception("Bạn đã đánh giá sản phẩm này rồi.");
+            throw new ReviewOperationException('Bạn đã đánh giá sản phẩm này rồi.');
         }
 
         // 3. Tạo review (mặc định chờ duyệt)

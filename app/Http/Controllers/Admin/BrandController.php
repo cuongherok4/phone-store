@@ -5,11 +5,11 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BrandRequest;
 use App\Models\Brand;
+use App\Services\HomepageCacheService;
+use App\Services\SecureImageUploadService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
-use Intervention\Image\ImageManager;
-use Intervention\Image\Drivers\Gd\Driver;
 
 class BrandController extends Controller
 {
@@ -24,15 +24,16 @@ class BrandController extends Controller
         return view('admin.brands.form');
     }
 
-    public function store(BrandRequest $request): RedirectResponse
+    public function store(BrandRequest $request, SecureImageUploadService $imageUploadService): RedirectResponse
     {
         $data = $request->validated();
 
         if ($request->hasFile('logo')) {
-            $data['logo'] = $this->uploadLogo($request->file('logo'));
+            $data['logo'] = $imageUploadService->storeWebp($request->file('logo'), 'brands', maxWidth: 400);
         }
 
         Brand::create($data);
+        app(HomepageCacheService::class)->flush();
 
         return redirect()->route('admin.brands.index')
             ->with('success', 'Thương hiệu đã được tạo thành công.');
@@ -43,7 +44,7 @@ class BrandController extends Controller
         return view('admin.brands.form', ['brand' => $thuong_hieu]);
     }
 
-    public function update(BrandRequest $request, Brand $thuong_hieu): RedirectResponse
+    public function update(BrandRequest $request, Brand $thuong_hieu, SecureImageUploadService $imageUploadService): RedirectResponse
     {
         $data = $request->validated();
 
@@ -51,7 +52,7 @@ class BrandController extends Controller
             if ($thuong_hieu->logo) {
                 Storage::disk('public')->delete($thuong_hieu->logo);
             }
-            $data['logo'] = $this->uploadLogo($request->file('logo'));
+            $data['logo'] = $imageUploadService->storeWebp($request->file('logo'), 'brands', maxWidth: 400);
         } elseif ($request->boolean('delete_logo')) {
             if ($thuong_hieu->logo) {
                 Storage::disk('public')->delete($thuong_hieu->logo);
@@ -60,6 +61,7 @@ class BrandController extends Controller
         }
 
         $thuong_hieu->update($data);
+        app(HomepageCacheService::class)->flush();
 
         return redirect()->route('admin.brands.index')
             ->with('success', 'Thương hiệu đã được cập nhật thành công.');
@@ -77,23 +79,10 @@ class BrandController extends Controller
         }
 
         $thuong_hieu->delete();
+        app(HomepageCacheService::class)->flush();
 
         return redirect()->route('admin.brands.index')
             ->with('success', 'Thương hiệu đã được xóa thành công.');
     }
 
-    private function uploadLogo($file): string
-    {
-        $manager = new ImageManager(new Driver());
-        $image = $manager->read($file->getRealPath());
-
-        if ($image->width() > 400) {
-            $image->scale(width: 400);
-        }
-
-        $filename = 'brands/' . uniqid() . '.webp';
-        Storage::disk('public')->put($filename, $image->toWebp(85));
-
-        return $filename;
-    }
 }

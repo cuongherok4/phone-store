@@ -7,9 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 class OrderItem extends Model
 {
     public $timestamps = false;
-    protected $fillable = ['order_id', 'variant_id', 'sku', 'name', 'price', 'quantity'];
+    protected $fillable = ['order_id', 'variant_id', 'sku', 'name', 'price', 'quantity', 'subtotal'];
 
-    protected $casts = ['price' => 'float'];
+    protected $casts = [
+        'price' => 'float',
+        'subtotal' => 'float',
+    ];
 
     public function order()   { return $this->belongsTo(Order::class); }
     public function variant() { return $this->belongsTo(ProductVariant::class, 'variant_id'); }
@@ -17,6 +20,8 @@ class OrderItem extends Model
 
     public function getSubtotalAttribute(): float
     {
-        return $this->price * $this->quantity;
+        return array_key_exists('subtotal', $this->attributes)
+            ? (float) $this->attributes['subtotal']
+            : $this->price * $this->quantity;
     }
 }

@@ -4,22 +4,30 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Services\CartService;
+use App\Services\CouponService;
+use App\Services\InventoryService;
 use App\Services\OrderService;
 use App\Models\UserAddress;
 use App\Models\Coupon;
+use App\Support\UserSafeMessage;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class CheckoutController extends Controller
 {
     protected $cartService;
     protected $orderService;
     protected $paymentService;
+    protected $inventoryService;
+    protected $couponService;
 
-    public function __construct(CartService $cartService, OrderService $orderService, \App\Services\PaymentService $paymentService)
+    public function __construct(CartService $cartService, OrderService $orderService, \App\Services\PaymentService $paymentService, InventoryService $inventoryService, CouponService $couponService)
     {
         $this->cartService = $cartService;
         $this->orderService = $orderService;
         $this->paymentService = $paymentService;
+        $this->inventoryService = $inventoryService;
+        $this->couponService = $couponService;
     }
 
     /**
@@ -31,8 +39,20 @@ class CheckoutController extends Controller
 
         // Xử lý luồng Mua ngay (Direct Buy)
         if ($request->has('variant_id')) {
+            $request->validate([
+                'variant_id' => 'required|exists:product_variants,id',
+                'quantity'   => 'nullable|integer|min:1|max:99',
+            ]);
+
             $variant = \App\Models\ProductVariant::with(['product', 'images', 'variantAttributes.attributeValue'])->findOrFail($request->variant_id);
-            $qty = $request->get('quantity', 1);
+            $qty = (int) $request->get('quantity', 1);
+            $stock = $this->inventoryService->getStock($variant->id);
+
+            if ($stock < $qty) {
+                return redirect()
+                    ->route('customer.products.show', $variant->product->slug)
+                    ->with('error', "Sản phẩm \"{$variant->product->name}\" hiện chỉ còn {$stock} sản phẩm.");
+            }
             
             // Tạo một Cart "ảo" cho view
             $mockItem = new \App\Models\CartItem([
@@ -86,13 +106,13 @@ class CheckoutController extends Controller
             'note'             => 'nullable|string|max:1000',
             'address_id'       => 'nullable|exists:user_addresses,id',
             'payment_method'   => 'required|in:COD,VNPAY',
+            'variant_id'        => 'nullable|exists:product_variants,id',
+            'quantity'          => 'nullable|integer|min:1|max:99',
+            'coupon_code'       => 'nullable|string|max:50',
         ]);
 
         try {
             $data = $request->all();
-            
-            // Logic tính toán discount từ coupon sẽ được thêm ở 3.4 sau
-            $data['discount_amount'] = 0;
             $data['shipping_fee'] = 0; // Tạm thời miễn phí vận chuyển
 
             $order = $this->orderService->createFromCart($data);
@@ -108,7 +128,11 @@ class CheckoutController extends Controller
 
             return redirect()->route('checkout.success', $order->id)->with('success', 'Đặt hàng thành công! Cảm ơn bạn đã tin tưởng PhoneStore.');
         } catch (\Exception $e) {
-            return back()->with('error', $e->getMessage())->withInput();
+            Log::error('Checkout process failed', ['exception' => $e]);
+
+            return back()
+                ->with('error', UserSafeMessage::from($e, 'Không thể đặt hàng lúc này, vui lòng thử lại sau.'))
+                ->withInput();
         }
     }
 
@@ -136,23 +160,33 @@ class CheckoutController extends Controller
         if ($result === 'success') {
             $order = \App\Models\Order::findOrFail($orderId);
 
-            if ($order->payment_status !== 'PAID') {
-                if ($this->orderService->confirmOnlinePayment($order)) {
+            try {
+                $isFirstConfirmation = $this->orderService->confirmOnlinePayment($order);
+
+                \App\Models\Payment::updateOrCreate(
+                    [
+                        'method' => $method,
+                        'transaction_id' => 'DEMO_' . $method . '_' . $order->id,
+                    ],
+                    [
+                        'order_id'         => $order->id,
+                        'amount'           => $order->total_price,
+                        'status'           => 'SUCCESS',
+                        'gateway_response' => json_encode(['demo' => true, 'method' => $method]),
+                        'paid_at'          => now(),
+                    ]
+                );
+
+                if ($isFirstConfirmation) {
                     $this->sendOrderEmail($order);
                 }
+            } catch (\Exception $e) {
+                Log::error('Demo payment confirmation failed', ['order_id' => $orderId, 'exception' => $e]);
 
-                \App\Models\Payment::create([
-                    'order_id'         => $order->id,
-                    'method'           => $method,
-                    'transaction_id'   => 'DEMO_' . strtoupper(uniqid()),
-                    'amount'           => $order->total_price,
-                    'status'           => 'SUCCESS',
-                    'gateway_response' => json_encode(['demo' => true, 'method' => $method]),
-                    'paid_at'          => now(),
-                ]);
+                return redirect()
+                    ->route('checkout.index')
+                    ->with('error', UserSafeMessage::from($e, 'Không thể xác nhận thanh toán lúc này.'));
             }
-
-            $this->sendOrderEmail($order);
 
             return redirect()->route('checkout.success', $order->id)
                 ->with('success', "Thanh toán {$method} thành công!");
@@ -175,14 +209,31 @@ class CheckoutController extends Controller
 
         if ($result['success']) {
             $order = \App\Models\Order::find($result['order_id']);
-            if ($this->orderService->confirmOnlinePayment($order)) {
-                $this->sendOrderEmail($order);
+
+            if (! $order) {
+                return redirect()->route('checkout.index')->with('error', 'Không tìm thấy đơn hàng thanh toán.');
             }
-            return redirect()->route('checkout.success', $order->id)->with('success', 'Thanh toán VNPAY thành công!');
+
+            try {
+                if ($this->orderService->confirmOnlinePayment($order)) {
+                    $this->sendOrderEmail($order);
+                }
+
+                return redirect()->route('checkout.success', $order->id)->with('success', 'Thanh toán VNPAY thành công!');
+            } catch (\Exception $e) {
+                Log::error('VNPAY payment confirmation failed', ['order_id' => $order->id, 'exception' => $e]);
+
+                return redirect()
+                    ->route('checkout.index')
+                    ->with('error', UserSafeMessage::from($e, 'Không thể xác nhận thanh toán lúc này.'));
+            }
         }
 
         return redirect()->route('checkout.index')->with('error', $result['message'] ?? 'Thanh toán VNPAY thất bại hoặc bị hủy.');
     }
+
+
+
 
     /**
      * Gửi mail xác nhận đơn hàng.
@@ -191,7 +242,7 @@ class CheckoutController extends Controller
     {
         try {
             \Illuminate\Support\Facades\Mail::to($order->user->email)
-                ->send(new \App\Mail\OrderConfirmation($order));
+                ->queue(new \App\Mail\OrderConfirmation($order));
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error("Mail error: " . $e->getMessage());
         }
@@ -203,11 +254,8 @@ class CheckoutController extends Controller
     public function success($orderId)
     {
         $order = \App\Models\Order::with('items.variant.product')->findOrFail($orderId);
-        
-        // Bảo mật: chỉ cho phép người mua xem trang thành công (nếu đã login)
-        if (auth()->check() && $order->user_id !== auth()->id()) {
-            abort(403);
-        }
+
+        $this->authorize('view', $order);
 
         return view('customer.checkout.success', compact('order'));
     }
@@ -217,24 +265,44 @@ class CheckoutController extends Controller
      */
     public function checkCoupon(Request $request)
     {
-        $code = $request->input('code');
-        $coupon = Coupon::where('code', $code)
-            ->where('is_active', true)
-            ->where('start_at', '<=', now())
-            ->where('expires_at', '>=', now())
-            ->first();
+        $validated = $request->validate([
+            'code' => 'required|string|max:50',
+            'variant_id' => 'nullable|exists:product_variants,id',
+            'quantity' => 'nullable|integer|min:1|max:99',
+        ]);
 
-        if (!$coupon) {
-            return response()->json(['success' => false, 'message' => 'Mã giảm giá không tồn tại hoặc đã hết hạn.']);
+        try {
+            $subtotal = $this->getCheckoutSubtotal($request);
+            $result = $this->couponService->validate($validated['code'], auth()->id(), $subtotal);
+
+            return response()->json([
+                'success' => true,
+                'coupon'  => [
+                    'id' => $result['coupon']->id,
+                    'code' => $result['coupon']->code,
+                    'discount_type' => $result['coupon']->discount_type,
+                    'discount_value' => $result['coupon']->discount_value,
+                ],
+                'discount_amount' => $result['discount_amount'],
+                'message' => 'Áp dụng mã giảm giá thành công!',
+            ]);
+        } catch (\Exception $e) {
+            Log::warning('Coupon check failed', ['code' => $validated['code'] ?? null, 'exception' => $e]);
+
+            return response()->json([
+                'success' => false,
+                'message' => UserSafeMessage::from($e, 'Không thể kiểm tra mã giảm giá lúc này.'),
+            ], UserSafeMessage::statusCode($e, 422));
+        }
+    }
+
+    private function getCheckoutSubtotal(Request $request): float
+    {
+        if ($request->filled('variant_id')) {
+            $variant = \App\Models\ProductVariant::findOrFail($request->input('variant_id'));
+            return $variant->price * (int) $request->input('quantity', 1);
         }
 
-        // Kiểm tra giới hạn sử dụng (nếu có)
-        // ...
-
-        return response()->json([
-            'success' => true,
-            'coupon'  => $coupon,
-            'message' => 'Áp dụng mã giảm giá thành công!'
-        ]);
+        return $this->cartService->getCartData()->total;
     }
 }

@@ -3,6 +3,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Services\SecureImageUploadService;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreVariantRequest extends FormRequest
@@ -23,8 +24,8 @@ class StoreVariantRequest extends FormRequest
             'attributes'    => 'nullable|array',
             'attributes.*'  => 'nullable|exists:attribute_values,id',
             // ảnh upload
-            'images'        => 'nullable|array',
-            'images.*'      => 'image|max:5120', // 5MB
+            'images'        => 'nullable|array|max:10',
+            'images.*'      => SecureImageUploadService::validationRules(maxKilobytes: 5120),
             'primary_image' => 'nullable|integer', // index trong mảng images
         ];
     }

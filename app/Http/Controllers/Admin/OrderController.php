@@ -8,9 +8,16 @@ use App\Models\OrderStatusHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\OrderService;
+use App\Support\UserSafeMessage;
+use Illuminate\Support\Facades\Log;
 
 class OrderController extends Controller
 {
+    public function __construct(private OrderService $orderService)
+    {
+    }
+
     /**
      * Danh sách đơn hàng với lọc.
      */
@@ -82,7 +89,7 @@ class OrderController extends Controller
             // Gửi email cập nhật trạng thái
             try {
                 \Illuminate\Support\Facades\Mail::to($order->user->email)
-                    ->send(new \App\Mail\OrderStatusChanged($order, $newStatus));
+                    ->queue(new \App\Mail\OrderStatusChanged($order, $newStatus));
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::error("Mail error: " . $e->getMessage());
             }
@@ -97,27 +104,19 @@ class OrderController extends Controller
     public function cancel(Request $request, $id)
     {
         $request->validate(['reason' => 'required|string|max:500']);
-        
-        $order = Order::findOrFail($id);
-        
-        if (in_array($order->status, ['COMPLETED', 'CANCELLED'])) {
-            return back()->with('error', 'Không thể huỷ đơn hàng ở trạng thái này.');
+
+        try {
+            $order = Order::findOrFail($id);
+            $this->authorize('cancel', $order);
+
+            $this->orderService->cancelOrder($id, 'Admin huỷ đơn: ' . $request->reason, auth()->id());
+
+            return back()->with('success', 'Đã huỷ đơn hàng và hoàn kho nếu đơn đã trừ tồn.');
+        } catch (\Exception $e) {
+            Log::warning('Admin order cancellation failed', ['order_id' => $id, 'exception' => $e]);
+
+            return back()->with('error', UserSafeMessage::from($e, 'Không thể huỷ đơn hàng lúc này.'));
         }
-
-        DB::transaction(function() use ($order, $request) {
-            $order->update(['status' => 'CANCELLED']);
-
-            OrderStatusHistory::create([
-                'order_id'   => $order->id,
-                'changed_by' => auth()->id(),
-                'old_status' => $order->status,
-                'new_status' => 'CANCELLED',
-                'note'       => 'Admin huỷ đơn: ' . $request->reason,
-                'created_at' => now(),
-            ]);
-        });
-
-        return back()->with('success', 'Đã huỷ đơn hàng.');
     }
 
     /**

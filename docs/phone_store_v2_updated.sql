@@ -199,7 +199,7 @@ CREATE TABLE inventory_logs (
     variant_id      BIGINT,
     warehouse_id    BIGINT,
     supplier_id     BIGINT UNSIGNED NULL, -- ← MỚI
-    change_type     ENUM('IMPORT','EXPORT','ADJUST') NOT NULL,
+    change_type     ENUM('IMPORT','EXPORT','ADJUST','RETURN') NOT NULL,
     quantity_change INT NOT NULL,
     import_price    DECIMAL(15,2) NULL, -- ← MỚI
     quantity_before INT COMMENT 'tồn kho trước khi thay đổi',
@@ -436,10 +436,12 @@ CREATE TABLE notifications (
 -- Products
 CREATE INDEX idx_products_brand          ON products(brand_id);
 CREATE INDEX idx_products_status         ON products(status, deleted_at);
+CREATE FULLTEXT INDEX idx_products_search_fulltext ON products(name, short_desc, description);
 
 -- Variants
 CREATE INDEX idx_variant_price           ON product_variants(price);
 CREATE INDEX idx_variant_product         ON product_variants(product_id);
+CREATE INDEX idx_product_variants_sku    ON product_variants(sku);
 
 -- Variant attributes
 CREATE INDEX idx_variant_attr_value      ON variant_attributes(attribute_value_id);
@@ -453,7 +455,7 @@ CREATE INDEX idx_orders_created          ON orders(created_at);
 
 -- Payments
 CREATE INDEX idx_payments_order          ON payments(order_id);
-CREATE INDEX idx_payments_transaction    ON payments(transaction_id);
+CREATE UNIQUE INDEX idx_payments_transaction    ON payments(transaction_id);
 
 -- Cart
 CREATE INDEX idx_cart_session            ON carts(session_id);
@@ -467,6 +469,7 @@ CREATE INDEX idx_notifications_user      ON notifications(user_id, is_read);
 
 -- Coupon usages
 CREATE INDEX idx_coupon_usage_user       ON coupon_usages(coupon_id, user_id);
+CREATE UNIQUE INDEX idx_coupon_usage_order_unique ON coupon_usages(coupon_id, order_id);
 
 -- Wishlist
 CREATE INDEX idx_wishlist_user           ON wishlists(user_id);

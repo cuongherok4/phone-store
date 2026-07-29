@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Services\ReviewService;
+use App\Services\SecureImageUploadService;
+use App\Support\UserSafeMessage;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class ReviewController extends Controller
 {
@@ -27,13 +30,14 @@ class ReviewController extends Controller
     /**
      * Xử lý gửi đánh giá.
      */
-    public function store(Request $request)
+    public function store(Request $request, SecureImageUploadService $imageUploadService)
     {
         $request->validate([
             'order_item_id' => 'required|exists:order_items,id',
             'rating'        => 'required|integer|min:1|max:5',
             'comment'       => 'nullable|string|max:1000',
-            'images.*'      => 'nullable|image|max:2048',
+            'images'        => 'nullable|array|max:5',
+            'images.*'      => SecureImageUploadService::validationRules(maxKilobytes: 2048),
         ]);
 
         try {
@@ -43,7 +47,7 @@ class ReviewController extends Controller
             $images = [];
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $file) {
-                    $images[] = $file->store('reviews', 'public');
+                    $images[] = $imageUploadService->storeWebp($file, 'reviews', maxWidth: 1200);
                 }
             }
             $data['images'] = $images;
@@ -52,7 +56,9 @@ class ReviewController extends Controller
 
             return back()->with('success', 'Cảm ơn bạn đã đánh giá! Nhận xét của bạn đang chờ quản trị viên duyệt.');
         } catch (\Exception $e) {
-            return back()->with('error', $e->getMessage());
+            Log::warning('Review submit failed', ['exception' => $e]);
+
+            return back()->with('error', UserSafeMessage::from($e, 'Không thể gửi đánh giá lúc này.'));
         }
     }
 }
